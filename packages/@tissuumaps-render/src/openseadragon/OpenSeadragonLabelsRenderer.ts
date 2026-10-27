@@ -351,16 +351,9 @@ export class OpenSeadragonLabelsRenderer extends OpenSeadragonRendererBase<
   ): DataTransfer {
     const outline = labels.labelRenderMode === "outline";
     const outlineWidth = Math.max(1, Math.round(labels.labelOutlineWidth));
-    let tileWidth = 0;
-    let tileHeight = 0;
     return {
-      getTileData: async (event) => {
-        const tileData = await data.getTileData(event);
-        tileWidth = tileData.width;
-        tileHeight = tileData.height;
-        return tileData;
-      },
-      transferValues: (values, pixelBuffer) => {
+      getTileData: (event) => data.getTileData(event),
+      transferValues: (values, pixelBuffer, tileWidth, tileHeight) => {
         for (let i = 0; i < values.length; i++) {
           const labelId = values[i]!;
           if (labelId === 0) {
@@ -390,7 +383,7 @@ export class OpenSeadragonLabelsRenderer extends OpenSeadragonRendererBase<
             pixelBuffer[i] = labelPixelValue;
           }
         }
-        if (outline && tileWidth * tileHeight === values.length) {
+        if (outline) {
           OpenSeadragonUtils.maskLabelOutlines(
             values,
             pixelBuffer,
