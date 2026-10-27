@@ -125,6 +125,8 @@ export type AppState = {
   sampleBrowserOpen: boolean;
   /** Candidate gene names for the transcript search */
   transcriptGenes: string[];
+  /** All names in the transcript index (control probes included), if any */
+  transcriptIndexGenes: string[] | null;
   /** Bumped when the sample ids of the experiment have been read */
   sampleInfoVersion: number;
 
@@ -395,7 +397,8 @@ export const useAppStore = create<AppState>()((set, get) => {
           mask,
           outlines,
         },
-        transcriptGenes: cellLayer.table.genes,
+        // without a transcript index, the table's genes are the best guess
+        transcriptGenes: get().transcriptIndexGenes ?? cellLayer.table.genes,
       });
       rebuild();
       writeStateToUrl(get());
@@ -467,10 +470,13 @@ export const useAppStore = create<AppState>()((set, get) => {
       cellLayer: null,
     };
     let transcriptTileSize = defaultTranscriptTileSize;
+    let transcriptIndexGenes: string[] | null = null;
     if (transcriptSource.hasIndex) {
       try {
         const reader = await transcriptSource.openIndex();
         transcriptTileSize = reader.index.tile_size;
+        // every name in the transcripts, control probes included
+        transcriptIndexGenes = reader.genes;
       } catch (error) {
         project.issues.push({
           severity: "warning",
@@ -486,6 +492,8 @@ export const useAppStore = create<AppState>()((set, get) => {
       loaders,
       transcriptSource,
       transcriptTileSize,
+      transcriptIndexGenes,
+      transcriptGenes: transcriptIndexGenes ?? [],
       selection,
       legend: null,
       cellLayer: null,
@@ -629,6 +637,7 @@ export const useAppStore = create<AppState>()((set, get) => {
     notices: [],
     sampleBrowserOpen: false,
     transcriptGenes: [],
+    transcriptIndexGenes: null,
     sampleInfoVersion: 0,
 
     openUrl: (url) => open(new URLSource(url)),

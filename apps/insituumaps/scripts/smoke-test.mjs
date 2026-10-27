@@ -224,6 +224,71 @@ try {
   console.log(`  transcript index: ${transcripts.hasIndex}`);
   await page.screenshot(`${outDir}/06-transcripts.png`);
 
+  console.log("6b. browse the full transcript gene list");
+  const pickerCounts = await state(
+    "{ all: s.transcriptGenes.length, table: s.cellLayer.table.genes.length }",
+  );
+  // the transcript picker is the last gene picker in the sidebar
+  const center = (selector) =>
+    page.evaluate(`(() => {
+      const els = document.querySelectorAll(${JSON.stringify(selector)});
+      const el = els[els.length - 1];
+      if (!el) return null;
+      el.scrollIntoView({ block: "center" });
+      const r = el.getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    })()`);
+  const trigger = await center('button[aria-label="Browse all genes"]');
+  await page.mouseClick(trigger.x, trigger.y);
+  const setSize = () =>
+    page.evaluate(
+      `Number(document.querySelector('[role="listbox"] [role="option"]')?.getAttribute("aria-setsize") ?? 0)`,
+    );
+  await page.waitFor(
+    `!!document.querySelector('[role="listbox"] [role="option"]')`,
+    {
+      timeout: 10000,
+      label: "the gene list",
+    },
+  );
+  const controlsCount = pickerCounts.all - pickerCounts.table;
+  const browsed = await setSize();
+  check(
+    browsed === pickerCounts.table + (controlsCount > 0 ? 1 : 0),
+    `all ${pickerCounts.table} genes listed, controls grouped (${browsed} rows)`,
+  );
+  // scroll to the end, where the control probe group sits
+  await page.evaluate(`(() => {
+    const list = document.querySelector('[role="listbox"] div[role="presentation"]');
+    list.scrollTop = list.scrollHeight;
+  })()`);
+  await sleep(300);
+  const group = await page.evaluate(`(() => {
+    const el = [...document.querySelectorAll('[role="listbox"] [role="option"]')]
+      .find((o) => o.textContent.startsWith("Control probes"));
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { text: el.textContent, x: r.x + r.width / 2, y: r.y + r.height / 2 };
+  })()`);
+  check(
+    group?.text === `Control probes (${controlsCount})`,
+    `control probe group at the end (${group?.text})`,
+  );
+  if (group !== null) {
+    await page.mouseClick(group.x, group.y);
+    await page.waitFor(
+      `Number(document.querySelector('[role="listbox"] [role="option"]')?.getAttribute("aria-setsize") ?? 0) > ${browsed}`,
+      { timeout: 10000, label: "the group to expand" },
+    );
+    const expanded = await setSize();
+    check(
+      expanded === browsed + controlsCount,
+      `group expands to the control probes (${expanded} rows)`,
+    );
+  }
+  await page.screenshot(`${outDir}/06b-gene-list.png`);
+  await page.keyboard("Escape");
+
   console.log("7. zoom and inspect a cell");
   for (let i = 0; i < 6; i++) {
     await page.send("Input.dispatchMouseEvent", {

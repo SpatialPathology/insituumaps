@@ -5,7 +5,7 @@ import {
   Palette,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { continuousColorPalettes } from "@tissuumaps/core";
 
@@ -16,6 +16,7 @@ import type { ImageSettings, MaskKey, OutlineChoice } from "@/viewer/selection";
 
 import { GeneSearch } from "./GeneSearch";
 import { CategoricalLegend, NumericLegend } from "./Legend";
+import { splitControlProbes } from "./controlProbes";
 import {
   Button,
   Hint,
@@ -274,8 +275,8 @@ function ColorSection() {
               }}
             />
             <Hint>
-              {table.genes.length.toLocaleString()} genes. Type to search, Enter
-              to select.
+              {table.genes.length.toLocaleString()} genes. Type to search, or
+              open the list to browse them all.
             </Hint>
           </div>
         </div>
@@ -675,6 +676,12 @@ function TranscriptsSection() {
   const setColor = useAppStore((s) => s.setTranscriptColor);
   const setPointSize = useAppStore((s) => s.setTranscriptPointSize);
   const setVisible = useAppStore((s) => s.setTranscriptsVisible);
+  const tableGenes = useAppStore((s) => s.cellLayer?.table.genes);
+  // control probes go into their own group at the end of the list
+  const split = useMemo(
+    () => splitControlProbes(genes, tableGenes),
+    [genes, tableGenes],
+  );
   if (project === null || project.transcripts === null) {
     return null;
   }
@@ -686,7 +693,8 @@ function TranscriptsSection() {
       actions={<Switch checked={transcripts.visible} onChange={setVisible} />}
     >
       <GeneSearch
-        genes={genes}
+        genes={split.genes}
+        controls={split.controls}
         value={null}
         onSelect={addGene}
         placeholder="Add a gene"
