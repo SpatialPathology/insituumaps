@@ -19,7 +19,7 @@ Open the link you were given. It looks like
 https://<viewer>/?source=https://<data>/my-experiment/
 ```
 
-and can carry the view: `&sample=3&layer=main&color=gene:EPCAM@counts&mask=nuclei&style=fill`.
+and can carry the view: `&sample=3&layer=main&color=gene:EPCAM@counts&mask=nuclei`.
 Copy the address bar at any time to share exactly what you see.
 
 1. **Sample** (experiments only): the sample table opens first. Sort by clicking a column,
@@ -28,15 +28,17 @@ Copy the address bar at any time to share exactly what you see.
 2. **Cell layer**: `main` is selected; other segmentations (e.g. `proseg`) are one click away.
 3. **Colour cells by**: _Gene_ (choose the expression values, then type a gene; the list
    suggests matches as you type, Enter selects), _Cell property_ (a column of the cell table:
-   clusters, areas, counts) or _None_ (white outlines).
+   clusters, areas, counts) or _None_ (outlines only).
    - Numeric values get a colour bar. The range starts at the data minimum and, for genes,
      at the 99.5th percentile so that a few extreme cells do not wash out the rest; edit
      _Min_/_Max_ or press _Auto_. The palette can be changed.
    - Categories get a list with a colour and a cell count each; untick a category to hide
      it, _All_/_None_ toggle them all.
-4. **Outlines**: draw the values on the _cell boundaries_ or the _nucleus boundaries_
-   (nuclei show the value of their cell), as thin *Outline*s or _Filled_. The switch at the
-   top hides them.
+4. **Outlines**: _Colour on_ fills either the _Cells_ or the _Nuclei_ with the values (nuclei
+   show the value of their cell), with an opacity slider. Thin neutral outlines on top keep
+   neighbouring cells apart: _Outline_ draws them on the cells, the nuclei or _Both_ (nucleus
+   outlines over the cell fill). The switch at the top hides them, and their width and
+   opacity can be changed.
 5. **Images**: show or hide H&E and the fluorescence channels, with opacity. A fluorescence
    channel also gets a colour and black/white levels (_Reset_ returns to the stored window).
 6. **Transcripts**: add genes one by one (each gets its own colour). Only the genes you add

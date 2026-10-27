@@ -34,7 +34,7 @@ import {
 
 import { grayscaleImageDataSourceType } from "./grayscaleImage";
 import { virtualTableDataSourceType } from "./loaders";
-import type { Selection } from "./selection";
+import type { MaskKey, OutlineChoice, Selection } from "./selection";
 
 /** ID of the single layer all objects of a sample live on (world = µm) */
 export const sampleLayerId = "sample";
@@ -42,8 +42,20 @@ export const sampleLayerId = "sample";
 export const cellTableId = "cells";
 /** ID of the remapped table that colours a mapped nucleus mask */
 export const nucleusTableId = "nuclei";
-/** ID of the labels object showing the selected mask */
+/** ID of the labels object filling the selected mask with the colouring */
 export const maskLabelsId = "mask";
+/** ID of the labels object drawing the neutral outlines of a mask */
+export function outlineLabelsId(mask: MaskKey): string {
+  return `mask-outlines:${mask}`;
+}
+/** Colour of the outlines (drawn with the outline opacity) */
+const outlineColor: Color = { r: 0, g: 0, b: 0 };
+const maskNames: Record<MaskKey, string> = { cells: "Cell", nuclei: "Nucleus" };
+
+/** The masks to outline, in drawing order (nuclei above cells) */
+function outlinedMasks(outlines: OutlineChoice): MaskKey[] {
+  return outlines === "both" ? ["cells", "nuclei"] : [outlines];
+}
 /** ID of the colour map of a categorical colouring */
 export const categoryColorMapId = "categories";
 /** ID of the visibility map of a categorical colouring */
@@ -169,22 +181,45 @@ export function buildViewerModel(options: {
         dataSource: cellLayer.table.dataSource,
       }),
     );
-    const mask = cellLayer.masks[selection.mask];
-    if (mask !== undefined && selection.maskVisible) {
+    // a mapped nucleus mask is coloured through the nucleus table, registered
+    // once for the fill and the outlines
+    let nucleusTableAdded = false;
+    const maskLabels = (maskKey: MaskKey) => {
+      const mask = cellLayer.masks[maskKey];
+      if (mask === undefined) {
+        return undefined;
+      }
       let tableId = cellTableId;
       if (mask.labelMapping.kind === "mapped") {
         tableId = nucleusTableId;
-        model.tables.push(
-          createTable({
-            id: nucleusTableId,
-            name: `Nuclei (${cellLayer.key})`,
-            dataSource: {
-              type: virtualTableDataSourceType,
-              source: nucleusTableId,
-            },
-          }),
-        );
+        if (!nucleusTableAdded) {
+          nucleusTableAdded = true;
+          model.tables.push(
+            createTable({
+              id: nucleusTableId,
+              name: `Nuclei (${cellLayer.key})`,
+              dataSource: {
+                type: virtualTableDataSourceType,
+                source: nucleusTableId,
+              },
+            }),
+          );
+        }
       }
+      return {
+        layer: sampleLayerId,
+        dataSource: { ...mask.dataSource, table: tableId },
+        transform: { ...identityTransform, scale: mask.pixelSize },
+      };
+    };
+
+    // the values are always drawn as a fill on exactly one mask; with nothing
+    // to colour, a fill would only cover the image, so only outlines are drawn
+    const fillLabels =
+      selection.colorBy.kind !== "none"
+        ? maskLabels(selection.mask)
+        : undefined;
+    if (fillLabels !== undefined) {
       const { labelColor, labelVisibility, colorMap, visibilityMap } =
         buildLabelAppearance(
           cellLayer,
@@ -200,19 +235,37 @@ export function buildViewerModel(options: {
       }
       model.labels.push(
         createLabels({
+          ...fillLabels,
           id: maskLabelsId,
-          name:
-            selection.mask === "cells" ? "Cell outlines" : "Nucleus outlines",
-          layer: sampleLayerId,
-          dataSource: { ...mask.dataSource, table: tableId },
-          transform: { ...identityTransform, scale: mask.pixelSize },
-          opacity: selection.maskOpacity,
+          name: `${maskNames[selection.mask]} values`,
+          opacity: selection.fillOpacity,
           labelColor,
           labelVisibility,
-          labelRenderMode: selection.maskStyle,
-          labelOutlineWidth: selection.outlineWidth,
+          labelRenderMode: "fill",
         }),
       );
+    }
+
+    // neutral outlines on top keep adjacent cells apart, on one or both masks
+    // (nuclei above cells); they outline every cell, also those of hidden
+    // categories
+    if (selection.outlinesVisible) {
+      for (const maskKey of outlinedMasks(selection.outlines)) {
+        const outline = maskLabels(maskKey);
+        if (outline !== undefined) {
+          model.labels.push(
+            createLabels({
+              ...outline,
+              id: outlineLabelsId(maskKey),
+              name: `${maskNames[maskKey]} outlines`,
+              opacity: selection.outlineOpacity,
+              labelColor: { constant: { value: outlineColor } },
+              labelRenderMode: "outline",
+              labelOutlineWidth: selection.outlineWidth,
+            }),
+          );
+        }
+      }
     }
   }
 

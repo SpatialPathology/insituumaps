@@ -39,7 +39,7 @@ import { RemappedTableData } from "@/viewer/remappedTable";
 import {
   type ColorBy,
   type ImageSettings,
-  type MaskStyle,
+  type OutlineChoice,
   type Selection,
   createDefaultSelection,
   transcriptColorCycle,
@@ -136,10 +136,11 @@ export type AppState = {
   selectCellLayer: (key: string) => Promise<void>;
   setColorBy: (colorBy: ColorBy) => void;
   setMask: (mask: "cells" | "nuclei") => void;
-  setMaskStyle: (style: MaskStyle) => void;
+  setFillOpacity: (opacity: number) => void;
+  setOutlinesVisible: (visible: boolean) => void;
+  setOutlines: (outlines: OutlineChoice) => void;
   setOutlineWidth: (width: number) => void;
-  setMaskOpacity: (opacity: number) => void;
-  setMaskVisible: (visible: boolean) => void;
+  setOutlineOpacity: (opacity: number) => void;
   setPalette: (palette: string) => void;
   setRange: (range: [number, number] | null) => void;
   toggleCategory: (category: string) => void;
@@ -372,10 +373,28 @@ export const useAppStore = create<AppState>()((set, get) => {
           : cellLayer.masks.cells !== undefined
             ? "cells"
             : "nuclei";
+      // outline what the layer has: "both" or a missing mask falls back to
+      // the mask that exists
+      const hasCells = cellLayer.masks.cells !== undefined;
+      const hasNuclei = cellLayer.masks.nuclei !== undefined;
+      const outlines: OutlineChoice =
+        hasCells && hasNuclei
+          ? selection.outlines
+          : selection.outlines === "nuclei" && hasNuclei
+            ? "nuclei"
+            : hasCells
+              ? "cells"
+              : "nuclei";
       set({
         cellLayer,
         cellLayerStatus: { phase: "ready" },
-        selection: { ...selection, cellLayer: key, colorBy, mask },
+        selection: {
+          ...selection,
+          cellLayer: key,
+          colorBy,
+          mask,
+          outlines,
+        },
         transcriptGenes: cellLayer.table.genes,
       });
       rebuild();
@@ -434,9 +453,11 @@ export const useAppStore = create<AppState>()((set, get) => {
       // carry the colouring and style over between samples of an experiment
       colorBy: urlState.colorBy ?? previous.colorBy,
       mask: urlState.mask ?? previous.mask,
-      maskStyle: urlState.maskStyle ?? previous.maskStyle,
+      fillOpacity: previous.fillOpacity,
+      outlinesVisible: previous.outlinesVisible,
+      outlines: previous.outlines,
       outlineWidth: previous.outlineWidth,
-      maskOpacity: previous.maskOpacity,
+      outlineOpacity: previous.outlineOpacity,
       palette: previous.palette,
       images,
       transcripts: {
@@ -676,10 +697,12 @@ export const useAppStore = create<AppState>()((set, get) => {
       void loadLegend();
     },
     setMask: (mask) => updateSelection({ mask }),
-    setMaskStyle: (maskStyle) => updateSelection({ maskStyle }),
+    setFillOpacity: (fillOpacity) => updateSelection({ fillOpacity }),
+    setOutlinesVisible: (outlinesVisible) =>
+      updateSelection({ outlinesVisible }),
+    setOutlines: (outlines) => updateSelection({ outlines }),
     setOutlineWidth: (outlineWidth) => updateSelection({ outlineWidth }),
-    setMaskOpacity: (maskOpacity) => updateSelection({ maskOpacity }),
-    setMaskVisible: (maskVisible) => updateSelection({ maskVisible }),
+    setOutlineOpacity: (outlineOpacity) => updateSelection({ outlineOpacity }),
     setPalette: (palette) => updateSelection({ palette }),
     setRange: (range) => updateSelection({ range }),
     toggleCategory: (category) => {

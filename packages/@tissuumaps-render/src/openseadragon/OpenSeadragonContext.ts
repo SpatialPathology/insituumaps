@@ -22,15 +22,22 @@ import { OpenSeadragonUtils } from "./OpenSeadragonUtils";
  * color of each value to the pixel at the same index, as `0xAABBGGRR`, i.e.
  * `(a << 24) | (b << 16) | (g << 8) | r` (see
  * {@link OpenSeadragonContext.updateTiledImageDataTransfer}). It is called
- * once per tile, with `pixelBuffer` as long as `values`. The buffer is reused
- * across tiles and still holds the colors of the previous one, so every pixel
- * has to be written.
+ * once per tile, with `pixelBuffer` as long as `values` and the raster size
+ * returned by `getTileData` for that tile (tiles are processed concurrently, so
+ * a transfer must not remember the size of the last tile it fetched). The
+ * buffer is reused across tiles and still holds the colors of the previous
+ * one, so every pixel has to be written.
  */
 export type DataTransfer = {
   getTileData: (
     event: OpenSeadragon.TileInvalidatedEvent,
   ) => Promise<{ values: TypedArray; width: number; height: number }>;
-  transferValues: (values: TypedArray, pixelBuffer: Uint32Array) => void;
+  transferValues: (
+    values: TypedArray,
+    pixelBuffer: Uint32Array,
+    width: number,
+    height: number,
+  ) => void;
 };
 
 /**
@@ -967,7 +974,7 @@ export class OpenSeadragonContext {
       this._pixelBuffer = new ArrayBuffer(byteLength);
     }
     const pixelBuffer = new Uint32Array(this._pixelBuffer, 0, width * height);
-    dataTransfer.transferValues(values, pixelBuffer);
+    dataTransfer.transferValues(values, pixelBuffer, width, height);
     if (!OpenSeadragonContext._isLittleEndian) {
       const view = new DataView(this._pixelBuffer);
       for (let i = 0; i < pixelBuffer.length; i++) {

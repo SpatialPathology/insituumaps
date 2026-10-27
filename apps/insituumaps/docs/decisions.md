@@ -179,3 +179,33 @@ InSituMaps with a "built on TissUUmaps" tagline; rename the display name only. R
 name should show that the viewer is built on TissUUmaps (the "UU" of Uppsala University's
 TissUUmaps) while still pointing to InSituPy; renaming before any data or InSituPy code depends
 on the index format is cheapest now. Data converted before the rename must be converted again.
+
+## D23. Values always on the fill, neutral outlines as a separate overlay (JW, 2026-10-27)
+
+Decision (JW, after the eye check): the colouring is always drawn as a fill; the Style switch
+(outline vs filled) is removed. The outlines are a second labels object on the same mask, drawn
+on top in black at 50 % opacity and 1 px by default (width 1-4 px and opacity sliders), switched
+on and off by the section switch. With _None_ as colouring, no fill is drawn (it would only cover
+the image), so only the outlines show. Outlines cover all cells, also those of hidden categories.
+The `style=` URL parameter is dropped (ignored in old links). Alternatives: solid black outlines
+(the "dark mesh" over H&E at low zoom), a colour picker for the outlines (one more control), a
+background-dependent colour. Reasoning: coloured outlines are hard to read; a neutral, semi-
+transparent separator keeps cells apart without hiding colour or tissue. Tile seams (D7) are
+checked by eye first and fixed only if visible; JW saw none on full-size samples (2026-10-27), so
+no halo read is added. The fill starts at 50 % opacity (JW), so the image stays visible under
+coloured cells. Supersedes the outline-as-colour part of D7 and
+the D19 remark on outlines of two colourings.
+
+## D24. One fill, outlines on cells, nuclei or both (JW, 2026-10-27)
+
+Decision (JW): cell and nucleus boundaries can be shown together by separating the fill from
+the outlines. _Colour on_ fills exactly one mask (cells or nuclei); _Outline_ draws neutral
+outlines on the cells, the nuclei or both (nucleus outlines drawn above cell outlines), and
+the section switch hides all outlines. Alternatives: two independent cell/nucleus checkboxes
+that fill and outline each mask. Reasoning: two fills overlap inside the nucleus and blend
+(today a double-blended copy of the same cell value, later two different values once nucleus
+expression exists), and "neither checked" is a confusing empty state; one fill plus any outlines
+avoids both. Designed to grow: a _Cytoplasm_ fill (cell minus nucleus) can join _Colour on_ when
+compartment values exist, and with _Both_ outlines the nucleus hole stays visible. A layer with
+only one mask falls back to outlining that mask. Each outline is its own labels object on the
+shared mask data.

@@ -1,8 +1,11 @@
 /**
  * Shareable URL state: `?source=<url>&sample=<i>&layer=<key>&color=gene:EPCAM
- * or color=obs:leiden&mask=cells|nuclei&style=outline|fill`
+ * or color=obs:leiden&mask=cells|nuclei`
+ *
+ * Links written before the fill/outline split may still carry `style=`; it is
+ * ignored and dropped on the next write.
  */
-import type { ColorBy, MaskStyle } from "@/viewer/selection";
+import type { ColorBy } from "@/viewer/selection";
 
 export type UrlState = {
   source?: string;
@@ -10,7 +13,6 @@ export type UrlState = {
   cellLayer?: string;
   colorBy?: ColorBy;
   mask?: "cells" | "nuclei";
-  maskStyle?: MaskStyle;
 };
 
 export function readStateFromUrl(): UrlState {
@@ -45,10 +47,6 @@ export function readStateFromUrl(): UrlState {
   if (mask === "cells" || mask === "nuclei") {
     state.mask = mask;
   }
-  const style = params.get("style");
-  if (style === "outline" || style === "fill") {
-    state.maskStyle = style;
-  }
   return state;
 }
 
@@ -60,7 +58,6 @@ export function writeStateToUrl(state: {
     cellLayer: string | null;
     colorBy: ColorBy;
     mask: string;
-    maskStyle: string;
   };
 }): void {
   const url = new URL(window.location.href);
@@ -83,7 +80,6 @@ export function writeStateToUrl(state: {
       params.set("color", `obs:${colorBy.column}`);
     }
     params.set("mask", state.selection.mask);
-    params.set("style", state.selection.maskStyle);
   }
   window.history.replaceState({}, "", url);
 }

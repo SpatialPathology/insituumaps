@@ -126,11 +126,20 @@ try {
     `numeric legend (${JSON.stringify(legend)})`,
   );
   const labels = await state(
-    "s.model.labels.map(l => ({ color: l.labelColor, mode: l.labelRenderMode }))",
+    "s.model.labels.map(l => ({ id: l.id, color: l.labelColor, mode: l.labelRenderMode, opacity: l.opacity }))",
   );
   check(
-    labels[0]?.mode === "outline" && labels[0]?.color.from !== undefined,
-    `outlines coloured from the table (${JSON.stringify(labels[0])})`,
+    labels[0]?.mode === "fill" &&
+      labels[0]?.color.from !== undefined &&
+      labels[0]?.opacity === 0.5,
+    `fill coloured from the table (${JSON.stringify(labels[0])})`,
+  );
+  check(
+    labels.length === 2 &&
+      labels[1]?.mode === "outline" &&
+      labels[1]?.color.constant?.value.r === 0 &&
+      labels[1]?.opacity === 0.5,
+    `neutral outlines on top (${JSON.stringify(labels[1])})`,
   );
   if (hasCounts) {
     check(
@@ -142,17 +151,18 @@ try {
   }
   await page.screenshot(`${outDir}/03-gene.png`);
 
-  console.log("4. nucleus outlines, filled");
+  console.log("4. nuclei filled, outlines off");
   await call(`s.setMask("nuclei")`);
-  await call(`s.setMaskStyle("fill")`);
+  await call(`s.setOutlinesVisible(false)`);
   await settled();
   const nucleiModel = await state(
     "s.model.labels.map(l => ({ source: l.dataSource.source, table: l.dataSource.table, mode: l.labelRenderMode }))",
   );
   check(
-    nucleiModel[0]?.source.includes("masks/nuclei") &&
+    nucleiModel.length === 1 &&
+      nucleiModel[0]?.source.includes("masks/nuclei") &&
       nucleiModel[0]?.mode === "fill",
-    `nucleus mask filled (${JSON.stringify(nucleiModel[0])})`,
+    `nucleus mask filled without outlines (${JSON.stringify(nucleiModel)})`,
   );
   await page.screenshot(`${outDir}/04-nuclei-fill.png`);
 
@@ -175,8 +185,24 @@ try {
   );
   await page.screenshot(`${outDir}/05-leiden.png`);
 
+  console.log("5b. both outlines over the nucleus fill");
+  await call(`s.setOutlinesVisible(true)`);
+  await call(`s.setOutlines("both")`);
+  await settled();
+  const both = await state(
+    "s.model.labels.map(l => ({ id: l.id, mode: l.labelRenderMode, source: l.dataSource.source.split('/').pop() }))",
+  );
+  check(
+    both.length === 3 &&
+      both[0]?.mode === "fill" &&
+      both[0]?.source === "nuclei" &&
+      both[1]?.id === "mask-outlines:cells" &&
+      both[2]?.id === "mask-outlines:nuclei",
+    `nucleus fill, then cell and nucleus outlines (${JSON.stringify(both)})`,
+  );
+  await page.screenshot(`${outDir}/05b-both-outlines.png`);
+
   console.log("6. transcripts");
-  await call(`s.setMaskStyle("outline")`);
   await call(`s.addTranscriptGene("EPCAM")`);
   await call(`s.addTranscriptGene("CD3E")`);
   await page.waitFor(

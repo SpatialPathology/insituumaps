@@ -10,8 +10,11 @@ export type ColorBy =
   | { kind: "gene"; source: string; gene: string }
   | { kind: "obs"; column: string };
 
-/** How the selected mask is drawn */
-export type MaskStyle = "outline" | "fill";
+/** A segmentation mask of a cell layer */
+export type MaskKey = "cells" | "nuclei";
+
+/** Which masks get neutral outlines */
+export type OutlineChoice = MaskKey | "both";
 
 /** Per-image display settings */
 export type ImageSettings = {
@@ -30,15 +33,18 @@ export type Selection = {
   /** Cell layer key, or null for none */
   cellLayer: string | null;
   colorBy: ColorBy;
-  /** Which outlines the values are drawn on */
-  mask: "cells" | "nuclei";
-  maskStyle: MaskStyle;
-  /** Outline width in screen pixels (outline style) */
+  /** Which mask the values are drawn on (filled); exactly one */
+  mask: MaskKey;
+  /** Opacity of the coloured fill, 0 to 1 */
+  fillOpacity: number;
+  /** Whether the neutral outlines are drawn over the fill */
+  outlinesVisible: boolean;
+  /** Which masks are outlined */
+  outlines: OutlineChoice;
+  /** Outline width in pixels of the drawn resolution level */
   outlineWidth: number;
-  /** Opacity of the mask layer, 0 to 1 */
-  maskOpacity: number;
-  /** Whether the mask is shown at all */
-  maskVisible: boolean;
+  /** Opacity of the outlines, 0 to 1 */
+  outlineOpacity: number;
   /** Continuous colour palette ID (see `@tissuumaps/core` palettes) */
   palette: string;
   /** Value range of the colour legend; null = automatic */
@@ -77,10 +83,11 @@ export function createDefaultSelection(): Selection {
     cellLayer: null,
     colorBy: { kind: "none" },
     mask: "cells",
-    maskStyle: "outline",
+    fillOpacity: 0.5,
+    outlinesVisible: true,
+    outlines: "cells",
     outlineWidth: 1,
-    maskOpacity: 1,
-    maskVisible: true,
+    outlineOpacity: 0.5,
     palette: defaultPalette,
     range: null,
     hiddenCategories: [],
