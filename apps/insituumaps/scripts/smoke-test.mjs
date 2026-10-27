@@ -183,8 +183,24 @@ try {
   );
   await page.screenshot(`${outDir}/05-leiden.png`);
 
-  console.log("6. transcripts");
+  console.log("5b. both outlines over the nucleus fill");
   await call(`s.setOutlinesVisible(true)`);
+  await call(`s.setOutlines("both")`);
+  await settled();
+  const both = await state(
+    "s.model.labels.map(l => ({ id: l.id, mode: l.labelRenderMode, source: l.dataSource.source.split('/').pop() }))",
+  );
+  check(
+    both.length === 3 &&
+      both[0]?.mode === "fill" &&
+      both[0]?.source === "nuclei" &&
+      both[1]?.id === "mask-outlines:cells" &&
+      both[2]?.id === "mask-outlines:nuclei",
+    `nucleus fill, then cell and nucleus outlines (${JSON.stringify(both)})`,
+  );
+  await page.screenshot(`${outDir}/05b-both-outlines.png`);
+
+  console.log("6. transcripts");
   await call(`s.addTranscriptGene("EPCAM")`);
   await call(`s.addTranscriptGene("CD3E")`);
   await page.waitFor(

@@ -39,6 +39,7 @@ import { RemappedTableData } from "@/viewer/remappedTable";
 import {
   type ColorBy,
   type ImageSettings,
+  type OutlineChoice,
   type Selection,
   createDefaultSelection,
   transcriptColorCycle,
@@ -137,6 +138,7 @@ export type AppState = {
   setMask: (mask: "cells" | "nuclei") => void;
   setFillOpacity: (opacity: number) => void;
   setOutlinesVisible: (visible: boolean) => void;
+  setOutlines: (outlines: OutlineChoice) => void;
   setOutlineWidth: (width: number) => void;
   setOutlineOpacity: (opacity: number) => void;
   setPalette: (palette: string) => void;
@@ -371,10 +373,28 @@ export const useAppStore = create<AppState>()((set, get) => {
           : cellLayer.masks.cells !== undefined
             ? "cells"
             : "nuclei";
+      // outline what the layer has: "both" or a missing mask falls back to
+      // the mask that exists
+      const hasCells = cellLayer.masks.cells !== undefined;
+      const hasNuclei = cellLayer.masks.nuclei !== undefined;
+      const outlines: OutlineChoice =
+        hasCells && hasNuclei
+          ? selection.outlines
+          : selection.outlines === "nuclei" && hasNuclei
+            ? "nuclei"
+            : hasCells
+              ? "cells"
+              : "nuclei";
       set({
         cellLayer,
         cellLayerStatus: { phase: "ready" },
-        selection: { ...selection, cellLayer: key, colorBy, mask },
+        selection: {
+          ...selection,
+          cellLayer: key,
+          colorBy,
+          mask,
+          outlines,
+        },
         transcriptGenes: cellLayer.table.genes,
       });
       rebuild();
@@ -435,6 +455,7 @@ export const useAppStore = create<AppState>()((set, get) => {
       mask: urlState.mask ?? previous.mask,
       fillOpacity: previous.fillOpacity,
       outlinesVisible: previous.outlinesVisible,
+      outlines: previous.outlines,
       outlineWidth: previous.outlineWidth,
       outlineOpacity: previous.outlineOpacity,
       palette: previous.palette,
@@ -679,6 +700,7 @@ export const useAppStore = create<AppState>()((set, get) => {
     setFillOpacity: (fillOpacity) => updateSelection({ fillOpacity }),
     setOutlinesVisible: (outlinesVisible) =>
       updateSelection({ outlinesVisible }),
+    setOutlines: (outlines) => updateSelection({ outlines }),
     setOutlineWidth: (outlineWidth) => updateSelection({ outlineWidth }),
     setOutlineOpacity: (outlineOpacity) => updateSelection({ outlineOpacity }),
     setPalette: (palette) => updateSelection({ palette }),

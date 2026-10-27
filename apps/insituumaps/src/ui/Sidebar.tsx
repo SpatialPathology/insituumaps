@@ -12,7 +12,7 @@ import { continuousColorPalettes } from "@tissuumaps/core";
 import type { ImageEntry } from "@/insitupy";
 import { formatNumber } from "@/lib/utils";
 import { getObsColumn, useAppStore } from "@/state/store";
-import type { ImageSettings } from "@/viewer/selection";
+import type { ImageSettings, MaskKey, OutlineChoice } from "@/viewer/selection";
 
 import { GeneSearch } from "./GeneSearch";
 import { CategoricalLegend, NumericLegend } from "./Legend";
@@ -436,6 +436,7 @@ function OutlineSection() {
   const setMask = useAppStore((s) => s.setMask);
   const setFillOpacity = useAppStore((s) => s.setFillOpacity);
   const setOutlinesVisible = useAppStore((s) => s.setOutlinesVisible);
+  const setOutlines = useAppStore((s) => s.setOutlines);
   const setOutlineWidth = useAppStore((s) => s.setOutlineWidth);
   const setOutlineOpacity = useAppStore((s) => s.setOutlineOpacity);
   if (cellLayer === null) {
@@ -445,6 +446,21 @@ function OutlineSection() {
   if (cells === undefined && nuclei === undefined) {
     return null;
   }
+  const maskOptions = [
+    {
+      value: "cells" as const,
+      label: "Cells",
+      disabled: cells === undefined,
+      title: cells === undefined ? "This layer has no cell mask" : undefined,
+    },
+    {
+      value: "nuclei" as const,
+      label: "Nuclei",
+      disabled: nuclei === undefined,
+      title:
+        nuclei === undefined ? "This layer has no nucleus mask" : undefined,
+    },
+  ];
   return (
     <Section
       title="Outlines"
@@ -457,31 +473,12 @@ function OutlineSection() {
     >
       <div className="space-y-3">
         <div>
-          <Label>Draw values on</Label>
-          <SegmentedControl<"cells" | "nuclei">
-            ariaLabel="Draw values on"
+          <Label>Colour on</Label>
+          <SegmentedControl<MaskKey>
+            ariaLabel="Colour on"
             value={selection.mask}
             onChange={setMask}
-            options={[
-              {
-                value: "cells",
-                label: "Cell boundaries",
-                disabled: cells === undefined,
-                title:
-                  cells === undefined
-                    ? "This layer has no cell mask"
-                    : undefined,
-              },
-              {
-                value: "nuclei",
-                label: "Nucleus boundaries",
-                disabled: nuclei === undefined,
-                title:
-                  nuclei === undefined
-                    ? "This layer has no nucleus mask"
-                    : undefined,
-              },
-            ]}
+            options={maskOptions}
           />
         </div>
         {selection.colorBy.kind !== "none" && (
@@ -501,6 +498,26 @@ function OutlineSection() {
         )}
         {selection.outlinesVisible && (
           <>
+            <div>
+              <Label>Outline</Label>
+              <SegmentedControl<OutlineChoice>
+                ariaLabel="Outline"
+                value={selection.outlines}
+                onChange={setOutlines}
+                options={[
+                  ...maskOptions,
+                  {
+                    value: "both",
+                    label: "Both",
+                    disabled: cells === undefined || nuclei === undefined,
+                    title:
+                      cells === undefined || nuclei === undefined
+                        ? "This layer has only one mask"
+                        : undefined,
+                  },
+                ]}
+              />
+            </div>
             <div>
               <Label>Line width: {selection.outlineWidth} px</Label>
               <Slider

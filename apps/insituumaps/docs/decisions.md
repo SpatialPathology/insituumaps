@@ -193,3 +193,17 @@ background-dependent colour. Reasoning: coloured outlines are hard to read; a ne
 transparent separator keeps cells apart without hiding colour or tissue. Tile seams (D7) are
 checked by eye first and fixed only if visible. Supersedes the outline-as-colour part of D7 and
 the D19 remark on outlines of two colourings.
+
+## D24. One fill, outlines on cells, nuclei or both (JW, 2026-10-27)
+
+Decision (JW): cell and nucleus boundaries can be shown together by separating the fill from
+the outlines. _Colour on_ fills exactly one mask (cells or nuclei); _Outline_ draws neutral
+outlines on the cells, the nuclei or both (nucleus outlines drawn above cell outlines), and
+the section switch hides all outlines. Alternatives: two independent cell/nucleus checkboxes
+that fill and outline each mask. Reasoning: two fills overlap inside the nucleus and blend
+(today a double-blended copy of the same cell value, later two different values once nucleus
+expression exists), and "neither checked" is a confusing empty state; one fill plus any outlines
+avoids both. Designed to grow: a _Cytoplasm_ fill (cell minus nucleus) can join _Colour on_ when
+compartment values exist, and with _Both_ outlines the nucleus hole stays visible. A layer with
+only one mask falls back to outlining that mask. Each outline is its own labels object on the
+shared mask data.

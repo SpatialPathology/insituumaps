@@ -34,9 +34,10 @@ Copy the address bar at any time to share exactly what you see.
      _Min_/_Max_ or press _Auto_. The palette can be changed.
    - Categories get a list with a colour and a cell count each; untick a category to hide
      it, _All_/_None_ toggle them all.
-4. **Outlines**: fill the _cell boundaries_ or the _nucleus boundaries_ with the values
-   (nuclei show the value of their cell), with an opacity slider. Thin neutral outlines on
-   top keep neighbouring cells apart; the switch at the top hides them, and their width and
+4. **Outlines**: _Colour on_ fills either the _Cells_ or the _Nuclei_ with the values (nuclei
+   show the value of their cell), with an opacity slider. Thin neutral outlines on top keep
+   neighbouring cells apart: _Outline_ draws them on the cells, the nuclei or _Both_ (nucleus
+   outlines over the cell fill). The switch at the top hides them, and their width and
    opacity can be changed.
 5. **Images**: show or hide H&E and the fluorescence channels, with opacity. A fluorescence
    channel also gets a colour and black/white levels (_Reset_ returns to the stored window).
