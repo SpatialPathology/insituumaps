@@ -2,7 +2,7 @@
   "files": [],
   "references": [
     {
-      "path": "./apps/insitumaps"
+      "path": "./apps/insituumaps"
     },
     {
       "path": "./apps/tissuumaps"

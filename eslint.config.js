@@ -45,7 +45,7 @@ export default defineConfig([
   },
   {
     files: [
-      "apps/insitumaps/**/*.{js,jsx,ts,tsx}",
+      "apps/insituumaps/**/*.{js,jsx,ts,tsx}",
       "apps/tissuumaps/**/*.{js,jsx,ts,tsx}",
       "packages/@tissuumaps-react/**/*.{js,jsx,ts,tsx}",
     ],
@@ -53,7 +53,7 @@ export default defineConfig([
   },
   {
     // plain Node scripts (fixture download, data server, smoke test)
-    files: ["apps/insitumaps/scripts/**/*.mjs"],
+    files: ["apps/insituumaps/scripts/**/*.mjs"],
     extends: [tseslint.configs.disableTypeChecked],
     languageOptions: {
       globals: { ...globals.node, ...globals.browser },
