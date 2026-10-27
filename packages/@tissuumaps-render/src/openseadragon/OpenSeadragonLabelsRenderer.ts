@@ -24,6 +24,7 @@ import {
   type ObjectRef,
   OpenSeadragonRendererBase,
 } from "./OpenSeadragonRendererBase";
+import { OpenSeadragonUtils } from "./OpenSeadragonUtils";
 
 export type OpenSeadragonLabelsSyncContext = {
   tables: Table[];
@@ -73,7 +74,14 @@ export class OpenSeadragonLabelsRenderer extends OpenSeadragonRendererBase<
     string,
     {
       data: LabelsData;
-      state: Pick<Labels, "labelColor" | "labelVisibility" | "labelOpacity"> & {
+      state: Pick<
+        Labels,
+        | "labelColor"
+        | "labelVisibility"
+        | "labelOpacity"
+        | "labelRenderMode"
+        | "labelOutlineWidth"
+      > & {
         labelColorMap: GroupValueMap<Color> | undefined;
         labelVisibilityMap: GroupValueMap<boolean> | undefined;
         labelOpacityMap: GroupValueMap<number> | undefined;
@@ -127,6 +135,8 @@ export class OpenSeadragonLabelsRenderer extends OpenSeadragonRendererBase<
       labelColor: structuredClone(labels.labelColor),
       labelVisibility: structuredClone(labels.labelVisibility),
       labelOpacity: structuredClone(labels.labelOpacity),
+      labelRenderMode: labels.labelRenderMode,
+      labelOutlineWidth: labels.labelOutlineWidth,
       labelColorMap: ConfigUtils.findGroupByMap(
         labels.labelColor,
         context.colorMaps,
@@ -148,7 +158,9 @@ export class OpenSeadragonLabelsRenderer extends OpenSeadragonRendererBase<
       !deepEqual(renderedLabels.state.labelVisibility, state.labelVisibility) ||
       renderedLabels.state.labelVisibilityMap !== state.labelVisibilityMap ||
       !deepEqual(renderedLabels.state.labelOpacity, state.labelOpacity) ||
-      renderedLabels.state.labelOpacityMap !== state.labelOpacityMap
+      renderedLabels.state.labelOpacityMap !== state.labelOpacityMap ||
+      renderedLabels.state.labelRenderMode !== state.labelRenderMode ||
+      renderedLabels.state.labelOutlineWidth !== state.labelOutlineWidth
     ) {
       const dataTransfer =
         await OpenSeadragonLabelsRenderer._resolveDataTransfer(
@@ -316,7 +328,9 @@ export class OpenSeadragonLabelsRenderer extends OpenSeadragonRendererBase<
   /**
    * Creates the data transfer of a labels object from a lookup table
    *
-   * Label value `0` is background and maps to a fully transparent pixel. Labels
+   * Label value `0` is background and maps to a fully transparent pixel. In
+   * the outline render mode, the pixels inside a label are transparent as well
+   * (see {@link OpenSeadragonUtils.maskLabelOutlines}). Labels
    * that the lookup table does not list are resolved without table data as
    * they are first drawn (see e.g. {@link ColorResolver.resolveColorWithoutTable}):
    * constant values and random colors resolve exactly, whereas configurations
@@ -335,8 +349,17 @@ export class OpenSeadragonLabelsRenderer extends OpenSeadragonRendererBase<
     data: LabelsData,
     labelPixelValues: Map<number, number>,
   ): DataTransfer {
+    const outline = labels.labelRenderMode === "outline";
+    const outlineWidth = Math.max(1, Math.round(labels.labelOutlineWidth));
+    let tileWidth = 0;
+    let tileHeight = 0;
     return {
-      getTileData: (event) => data.getTileData(event),
+      getTileData: async (event) => {
+        const tileData = await data.getTileData(event);
+        tileWidth = tileData.width;
+        tileHeight = tileData.height;
+        return tileData;
+      },
       transferValues: (values, pixelBuffer) => {
         for (let i = 0; i < values.length; i++) {
           const labelId = values[i]!;
@@ -366,6 +389,15 @@ export class OpenSeadragonLabelsRenderer extends OpenSeadragonRendererBase<
             }
             pixelBuffer[i] = labelPixelValue;
           }
+        }
+        if (outline && tileWidth * tileHeight === values.length) {
+          OpenSeadragonUtils.maskLabelOutlines(
+            values,
+            pixelBuffer,
+            tileWidth,
+            tileHeight,
+            outlineWidth,
+          );
         }
       },
     };

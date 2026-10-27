@@ -71,6 +71,7 @@ export {
   type RawImageDataSource,
 } from "./model/image";
 export {
+  LabelRenderMode,
   createLabels,
   createLabelsDataSource,
   labelsDataSourceDefaults,

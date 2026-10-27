@@ -20,7 +20,26 @@ export const labelsDefaults = {
   labelColor: { random: { palette: defaultLabelColorPalette } },
   labelVisibility: { constant: { value: defaultLabelVisibility } },
   labelOpacity: { constant: { value: defaultLabelOpacity } },
+  labelRenderMode: "fill",
+  labelOutlineWidth: 1,
 } as const satisfies Partial<RawLabels>;
+
+/**
+ * How the pixels of a label are drawn
+ *
+ * - `fill`: every pixel of a label is drawn in the label's color
+ * - `outline`: only the pixels along the boundary of a label are drawn, i.e.
+ *   those with a 4-neighbor holding another label (or the background); the
+ *   inside of the label stays transparent
+ */
+export const LabelRenderMode = {
+  fill: "fill",
+  outline: "outline",
+} as const;
+
+/** One of the render modes of the {@link LabelRenderMode} object */
+export type LabelRenderMode =
+  (typeof LabelRenderMode)[keyof typeof LabelRenderMode];
 
 /**
  * A two-dimensional label mask
@@ -48,6 +67,24 @@ export interface RawLabels extends RawRenderedRasterDataObject<
    * @defaultValue {@link labelsDefaults.labelOpacity}
    */
   labelOpacity?: OpacityConfig;
+
+  /**
+   * Whether labels are drawn filled or as outlines
+   *
+   * @defaultValue {@link labelsDefaults.labelRenderMode}
+   */
+  labelRenderMode?: LabelRenderMode;
+
+  /**
+   * Width of the outlines in pixels of the drawn resolution level, for
+   * {@link LabelRenderMode.outline}
+   *
+   * Boundaries are detected per tile, so a boundary that coincides with a
+   * tile edge is not drawn on that edge.
+   *
+   * @defaultValue {@link labelsDefaults.labelOutlineWidth}
+   */
+  labelOutlineWidth?: number;
 }
 
 /**

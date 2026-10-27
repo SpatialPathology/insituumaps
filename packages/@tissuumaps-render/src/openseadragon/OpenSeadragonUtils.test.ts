@@ -449,3 +449,111 @@ describe("OpenSeadragonUtils", () => {
     );
   });
 });
+
+describe("OpenSeadragonUtils.isolateTileSource", () => {
+  function createTileSource() {
+    return new OpenSeadragon.TileSource({
+      width: 1024,
+      height: 1024,
+      tileSize: 256,
+      minLevel: 0,
+      maxLevel: 2,
+      getTileUrl: (level: number, x: number, y: number) =>
+        `tile-${level}-${x}-${y}`,
+    } as OpenSeadragon.TileSourceOptions);
+  }
+
+  it("inherits the tile source's behavior", () => {
+    const tileSource = createTileSource();
+    const isolated = OpenSeadragonUtils.isolateTileSource(tileSource);
+    expect(isolated).toBeInstanceOf(OpenSeadragon.TileSource);
+    expect(isolated.getTileUrl(1, 2, 3)).toBe(tileSource.getTileUrl(1, 2, 3));
+    expect(isolated.getNumTiles(2)).toEqual(tileSource.getNumTiles(2));
+    expect(isolated.ready).toBe(tileSource.ready);
+  });
+
+  it("gives each isolated tile source its own cache keys", () => {
+    const tileSource = createTileSource();
+    const a = OpenSeadragonUtils.isolateTileSource(tileSource);
+    const b = OpenSeadragonUtils.isolateTileSource(tileSource);
+    const url = tileSource.getTileUrl(1, 2, 3) as string;
+    const originalKey = String(
+      tileSource.getTileHashKey(1, 2, 3, url, {}, null),
+    );
+    const keyA = String(a.getTileHashKey(1, 2, 3, url, {}, null));
+    const keyB = String(b.getTileHashKey(1, 2, 3, url, {}, null));
+    expect(keyA).not.toBe(keyB);
+    expect(keyA.startsWith(originalKey)).toBe(true);
+    expect(keyB.startsWith(originalKey)).toBe(true);
+    // the same tiled image keeps stable keys
+    expect(String(a.getTileHashKey(1, 2, 3, url, {}, null))).toBe(keyA);
+  });
+
+  it("only equals itself", () => {
+    const tileSource = createTileSource();
+    const a = OpenSeadragonUtils.isolateTileSource(tileSource);
+    const b = OpenSeadragonUtils.isolateTileSource(tileSource);
+    expect(a.equals(a)).toBe(true);
+    expect(a.equals(b)).toBe(false);
+    expect(a.equals(tileSource)).toBe(false);
+  });
+});
+
+describe("OpenSeadragonUtils.maskLabelOutlines", () => {
+  it("keeps the boundary pixels of a label and clears its inside", () => {
+    // a 5x5 tile with a 3x3 label 7 in the middle
+    const values = new Uint32Array(25);
+    for (let y = 1; y <= 3; y++) {
+      for (let x = 1; x <= 3; x++) {
+        values[y * 5 + x] = 7;
+      }
+    }
+    const pixels = Uint32Array.from(values, (v) => (v === 0 ? 0 : 0xffffffff));
+    OpenSeadragonUtils.maskLabelOutlines(values, pixels, 5, 5, 1);
+    // the center pixel is inside: cleared
+    expect(pixels[2 * 5 + 2]).toBe(0);
+    // the eight pixels around it are on the boundary: kept
+    for (const [x, y] of [
+      [1, 1],
+      [2, 1],
+      [3, 1],
+      [1, 2],
+      [3, 2],
+      [1, 3],
+      [2, 3],
+      [3, 3],
+    ]) {
+      expect(pixels[y! * 5 + x!]).toBe(0xffffffff);
+    }
+    // background stays transparent
+    expect(pixels[0]).toBe(0);
+  });
+
+  it("separates two touching labels", () => {
+    // two labels side by side, each 2 pixels wide, on a 4x1 tile
+    const values = Uint32Array.from([1, 1, 2, 2]);
+    const pixels = Uint32Array.from([1, 1, 2, 2]);
+    OpenSeadragonUtils.maskLabelOutlines(values, pixels, 4, 1, 1);
+    // every pixel borders another label or the tile edge's inside, except
+    // none: with width 1 the inner pixels (index 1 and 2) see the other
+    // label, the outer ones see only their own label and the tile edge
+    expect(Array.from(pixels)).toEqual([0, 1, 2, 0]);
+  });
+
+  it("widens the outline", () => {
+    const values = new Uint32Array(7 * 7).fill(3);
+    const pixels = new Uint32Array(7 * 7).fill(0xff);
+    // a background pixel in the center
+    values[3 * 7 + 3] = 0;
+    pixels[3 * 7 + 3] = 0;
+    OpenSeadragonUtils.maskLabelOutlines(values, pixels, 7, 7, 2);
+    // within 2 pixels of the hole along the axes: kept
+    expect(pixels[3 * 7 + 1]).toBe(0xff);
+    expect(pixels[3 * 7 + 5]).toBe(0xff);
+    expect(pixels[1 * 7 + 3]).toBe(0xff);
+    // three pixels away: cleared
+    expect(pixels[3 * 7 + 0]).toBe(0);
+    // corner of the tile: cleared (no other label nearby)
+    expect(pixels[0]).toBe(0);
+  });
+});

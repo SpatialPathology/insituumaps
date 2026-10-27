@@ -662,7 +662,11 @@ export class OpenSeadragonContext {
           // this needs to be a shallow copy; OpenSeadragon mutates it!
           { ...tiledImageOptions, tileSource },
         )) as { source: OpenSeadragon.TileSource };
-      return openedTileSource;
+      // Data objects may hand out one tile source instance for several
+      // tiled images (e.g. two labels objects on the same mask), which would
+      // then share their tile cache and overwrite each other's recolored
+      // tiles, so every tiled image gets its own cache namespace.
+      return OpenSeadragonUtils.isolateTileSource(openedTileSource);
     } catch (error) {
       throw new Error("Failed to open tile source", { cause: error });
     }

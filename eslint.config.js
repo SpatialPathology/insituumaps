@@ -30,6 +30,8 @@ export default defineConfig([
             "apps/*/vite.config.ts",
             "packages/*/vite.config.ts",
           ],
+          // two apps and five packages: more config files than the default limit of 8
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 16,
         },
         tsconfigRootDir: import.meta.dirname,
       },
@@ -43,10 +45,20 @@ export default defineConfig([
   },
   {
     files: [
+      "apps/insituumaps/**/*.{js,jsx,ts,tsx}",
       "apps/tissuumaps/**/*.{js,jsx,ts,tsx}",
       "packages/@tissuumaps-react/**/*.{js,jsx,ts,tsx}",
     ],
     extends: [reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
+  },
+  {
+    // plain Node scripts (fixture download, data server, smoke test)
+    files: ["apps/insituumaps/scripts/**/*.mjs"],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
+      parserOptions: { projectService: false },
+    },
   },
   eslintConfigPrettier,
 ]);
