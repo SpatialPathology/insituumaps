@@ -209,3 +209,20 @@ avoids both. Designed to grow: a _Cytoplasm_ fill (cell minus nucleus) can join 
 compartment values exist, and with _Both_ outlines the nucleus hole stays visible. A layer with
 only one mask falls back to outlining that mask. Each outline is its own labels object on the
 shared mask data.
+
+## D25. Build on TissUUmaps components; full gene list on its autocomplete (JW, 2026-10-27)
+
+Decision (JW): InSitUUmaps is developed from TissUUmaps, reusing its components instead of its
+own controls (D10 is superseded where a TissUUmaps component exists). First case, the gene
+picker: TissUUmaps' `Autocomplete` (Base UI), its `InputGroup`/`IconButton`/`Button`/`Input`/
+`Tooltip` and `useCompressedRowVirtualizer` are copied **verbatim** into `src/components` and
+`src/hooks` (same relative paths as in `apps/tissuumaps/src`, upstream `79f9480`, see
+`src/components/README.md`), with the TissUUmaps light-theme tokens in `index.css` (radius
+scale left at this app's defaults). `GeneSearch` is built like TissUUmaps' `TableColumnInput`:
+the whole gene list can be browsed (virtualized, A-Z) or searched (prefix matches first), and the
+transcript picker lists control probes in a collapsed "Control probes (n)" group at the end
+(detected by name prefix, plus "not in the cell table"); a pressed group row reopens the list
+expanded. The transcript picker now offers every name of the transcript index (control probes
+included), not only the table's genes. Alternatives: keep the app's own picker and lift its
+12-entry cap; wait for a shared package. Reasoning: reuse first; verbatim copies keep a later
+move into `@tissuumaps/react` mechanical, which the image-layer review (6.3) decides.
