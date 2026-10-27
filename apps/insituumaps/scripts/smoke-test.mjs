@@ -129,7 +129,9 @@ try {
     "s.model.labels.map(l => ({ id: l.id, color: l.labelColor, mode: l.labelRenderMode, opacity: l.opacity }))",
   );
   check(
-    labels[0]?.mode === "fill" && labels[0]?.color.from !== undefined,
+    labels[0]?.mode === "fill" &&
+      labels[0]?.color.from !== undefined &&
+      labels[0]?.opacity === 0.5,
     `fill coloured from the table (${JSON.stringify(labels[0])})`,
   );
   check(

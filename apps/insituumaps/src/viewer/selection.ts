@@ -83,7 +83,7 @@ export function createDefaultSelection(): Selection {
     cellLayer: null,
     colorBy: { kind: "none" },
     mask: "cells",
-    fillOpacity: 1,
+    fillOpacity: 0.5,
     outlinesVisible: true,
     outlines: "cells",
     outlineWidth: 1,

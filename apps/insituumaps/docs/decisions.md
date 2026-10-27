@@ -191,7 +191,9 @@ The `style=` URL parameter is dropped (ignored in old links). Alternatives: soli
 (the "dark mesh" over H&E at low zoom), a colour picker for the outlines (one more control), a
 background-dependent colour. Reasoning: coloured outlines are hard to read; a neutral, semi-
 transparent separator keeps cells apart without hiding colour or tissue. Tile seams (D7) are
-checked by eye first and fixed only if visible. Supersedes the outline-as-colour part of D7 and
+checked by eye first and fixed only if visible; JW saw none on full-size samples (2026-10-27), so
+no halo read is added. The fill starts at 50 % opacity (JW), so the image stays visible under
+coloured cells. Supersedes the outline-as-colour part of D7 and
 the D19 remark on outlines of two colourings.
 
 ## D24. One fill, outlines on cells, nuclei or both (JW, 2026-10-27)
