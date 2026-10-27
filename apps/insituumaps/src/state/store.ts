@@ -39,7 +39,6 @@ import { RemappedTableData } from "@/viewer/remappedTable";
 import {
   type ColorBy,
   type ImageSettings,
-  type MaskStyle,
   type Selection,
   createDefaultSelection,
   transcriptColorCycle,
@@ -136,10 +135,10 @@ export type AppState = {
   selectCellLayer: (key: string) => Promise<void>;
   setColorBy: (colorBy: ColorBy) => void;
   setMask: (mask: "cells" | "nuclei") => void;
-  setMaskStyle: (style: MaskStyle) => void;
+  setFillOpacity: (opacity: number) => void;
+  setOutlinesVisible: (visible: boolean) => void;
   setOutlineWidth: (width: number) => void;
-  setMaskOpacity: (opacity: number) => void;
-  setMaskVisible: (visible: boolean) => void;
+  setOutlineOpacity: (opacity: number) => void;
   setPalette: (palette: string) => void;
   setRange: (range: [number, number] | null) => void;
   toggleCategory: (category: string) => void;
@@ -434,9 +433,10 @@ export const useAppStore = create<AppState>()((set, get) => {
       // carry the colouring and style over between samples of an experiment
       colorBy: urlState.colorBy ?? previous.colorBy,
       mask: urlState.mask ?? previous.mask,
-      maskStyle: urlState.maskStyle ?? previous.maskStyle,
+      fillOpacity: previous.fillOpacity,
+      outlinesVisible: previous.outlinesVisible,
       outlineWidth: previous.outlineWidth,
-      maskOpacity: previous.maskOpacity,
+      outlineOpacity: previous.outlineOpacity,
       palette: previous.palette,
       images,
       transcripts: {
@@ -676,10 +676,11 @@ export const useAppStore = create<AppState>()((set, get) => {
       void loadLegend();
     },
     setMask: (mask) => updateSelection({ mask }),
-    setMaskStyle: (maskStyle) => updateSelection({ maskStyle }),
+    setFillOpacity: (fillOpacity) => updateSelection({ fillOpacity }),
+    setOutlinesVisible: (outlinesVisible) =>
+      updateSelection({ outlinesVisible }),
     setOutlineWidth: (outlineWidth) => updateSelection({ outlineWidth }),
-    setMaskOpacity: (maskOpacity) => updateSelection({ maskOpacity }),
-    setMaskVisible: (maskVisible) => updateSelection({ maskVisible }),
+    setOutlineOpacity: (outlineOpacity) => updateSelection({ outlineOpacity }),
     setPalette: (palette) => updateSelection({ palette }),
     setRange: (range) => updateSelection({ range }),
     toggleCategory: (category) => {

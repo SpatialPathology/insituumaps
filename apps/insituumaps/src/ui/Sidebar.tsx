@@ -308,7 +308,7 @@ function ColorSection() {
             range={range}
             note={
               selection.mask === "nuclei"
-                ? "Nucleus outlines show the value of the cell they belong to."
+                ? "Nuclei show the value of the cell they belong to."
                 : undefined
             }
           />
@@ -381,9 +381,7 @@ function ColorSection() {
             onToggle={toggleCategory}
           />
           {selection.mask === "nuclei" && (
-            <Hint>
-              Nucleus outlines show the category of the cell they belong to.
-            </Hint>
+            <Hint>Nuclei show the category of the cell they belong to.</Hint>
           )}
         </div>
       )}
@@ -436,10 +434,10 @@ function OutlineSection() {
   const cellLayer = useAppStore((s) => s.cellLayer);
   const selection = useAppStore((s) => s.selection);
   const setMask = useAppStore((s) => s.setMask);
-  const setMaskStyle = useAppStore((s) => s.setMaskStyle);
+  const setFillOpacity = useAppStore((s) => s.setFillOpacity);
+  const setOutlinesVisible = useAppStore((s) => s.setOutlinesVisible);
   const setOutlineWidth = useAppStore((s) => s.setOutlineWidth);
-  const setMaskOpacity = useAppStore((s) => s.setMaskOpacity);
-  const setMaskVisible = useAppStore((s) => s.setMaskVisible);
+  const setOutlineOpacity = useAppStore((s) => s.setOutlineOpacity);
   if (cellLayer === null) {
     return null;
   }
@@ -451,7 +449,10 @@ function OutlineSection() {
     <Section
       title="Outlines"
       actions={
-        <Switch checked={selection.maskVisible} onChange={setMaskVisible} />
+        <Switch
+          checked={selection.outlinesVisible}
+          onChange={setOutlinesVisible}
+        />
       }
     >
       <div className="space-y-3">
@@ -483,42 +484,48 @@ function OutlineSection() {
             ]}
           />
         </div>
-        <div>
-          <Label>Style</Label>
-          <SegmentedControl<"outline" | "fill">
-            ariaLabel="Style"
-            value={selection.maskStyle}
-            onChange={setMaskStyle}
-            options={[
-              { value: "outline", label: "Outline" },
-              { value: "fill", label: "Filled" },
-            ]}
-          />
-        </div>
-        {selection.maskStyle === "outline" ? (
+        {selection.colorBy.kind !== "none" && (
           <div>
-            <Label>Line width: {selection.outlineWidth} px</Label>
-            <Slider
-              ariaLabel="Outline width"
-              min={1}
-              max={4}
-              step={1}
-              value={selection.outlineWidth}
-              onChange={setOutlineWidth}
-            />
-          </div>
-        ) : (
-          <div>
-            <Label>Opacity: {Math.round(selection.maskOpacity * 100)}%</Label>
+            <Label>
+              Fill opacity: {Math.round(selection.fillOpacity * 100)}%
+            </Label>
             <Slider
               ariaLabel="Fill opacity"
               min={0.1}
               max={1}
               step={0.05}
-              value={selection.maskOpacity}
-              onChange={setMaskOpacity}
+              value={selection.fillOpacity}
+              onChange={setFillOpacity}
             />
           </div>
+        )}
+        {selection.outlinesVisible && (
+          <>
+            <div>
+              <Label>Line width: {selection.outlineWidth} px</Label>
+              <Slider
+                ariaLabel="Outline width"
+                min={1}
+                max={4}
+                step={1}
+                value={selection.outlineWidth}
+                onChange={setOutlineWidth}
+              />
+            </div>
+            <div>
+              <Label>
+                Line opacity: {Math.round(selection.outlineOpacity * 100)}%
+              </Label>
+              <Slider
+                ariaLabel="Outline opacity"
+                min={0.1}
+                max={1}
+                step={0.05}
+                value={selection.outlineOpacity}
+                onChange={setOutlineOpacity}
+              />
+            </div>
+          </>
         )}
       </div>
     </Section>

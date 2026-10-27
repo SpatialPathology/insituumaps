@@ -179,3 +179,17 @@ InSituMaps with a "built on TissUUmaps" tagline; rename the display name only. R
 name should show that the viewer is built on TissUUmaps (the "UU" of Uppsala University's
 TissUUmaps) while still pointing to InSituPy; renaming before any data or InSituPy code depends
 on the index format is cheapest now. Data converted before the rename must be converted again.
+
+## D23. Values always on the fill, neutral outlines as a separate overlay (JW, 2026-10-27)
+
+Decision (JW, after the eye check): the colouring is always drawn as a fill; the Style switch
+(outline vs filled) is removed. The outlines are a second labels object on the same mask, drawn
+on top in black at 50 % opacity and 1 px by default (width 1-4 px and opacity sliders), switched
+on and off by the section switch. With _None_ as colouring, no fill is drawn (it would only cover
+the image), so only the outlines show. Outlines cover all cells, also those of hidden categories.
+The `style=` URL parameter is dropped (ignored in old links). Alternatives: solid black outlines
+(the "dark mesh" over H&E at low zoom), a colour picker for the outlines (one more control), a
+background-dependent colour. Reasoning: coloured outlines are hard to read; a neutral, semi-
+transparent separator keeps cells apart without hiding colour or tissue. Tile seams (D7) are
+checked by eye first and fixed only if visible. Supersedes the outline-as-colour part of D7 and
+the D19 remark on outlines of two colourings.

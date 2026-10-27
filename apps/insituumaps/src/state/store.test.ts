@@ -38,7 +38,6 @@ describe("url state", () => {
         cellLayer: "proseg",
         colorBy: { kind: "gene", gene: "EPCAM", source: "counts" },
         mask: "nuclei",
-        maskStyle: "fill",
       },
     });
     expect(readStateFromUrl()).toEqual({
@@ -47,7 +46,6 @@ describe("url state", () => {
       cellLayer: "proseg",
       colorBy: { kind: "gene", gene: "EPCAM", source: "counts" },
       mask: "nuclei",
-      maskStyle: "fill",
     });
     writeStateToUrl({
       source: { kind: "url", label: "https://example.org/p/" },
@@ -56,7 +54,6 @@ describe("url state", () => {
         cellLayer: null,
         colorBy: { kind: "obs", column: "leiden" },
         mask: "cells",
-        maskStyle: "outline",
       },
     });
     expect(readStateFromUrl().colorBy).toEqual({
@@ -74,7 +71,6 @@ describe("url state", () => {
         cellLayer: "main",
         colorBy: { kind: "none" },
         mask: "cells",
-        maskStyle: "outline",
       },
     });
     expect(readStateFromUrl().source).toBeUndefined();
