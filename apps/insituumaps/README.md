@@ -68,8 +68,14 @@ pnpm --filter insituumaps dev:fixture    # data server (port 8787) + viewer (por
 ```
 
 Then open <http://localhost:5174/?source=http://localhost:8787/fixture/>. The converter step
-needs `python3` with `numpy zarr h5py scipy pyarrow anndata` (`pip install` them). Without it
+needs Python with `numpy zarr h5py scipy pyarrow anndata` (`pip install` them). Without it
 the fixture still opens, with `.X` only and transcripts read from the Parquet file.
+
+The scripts use the first Python that runs out of `INSITUUMAPS_PYTHON`, `python3`, `python`
+and (on Windows) `py -3`. On Windows `python3` is often the Microsoft Store stub, so point
+`INSITUUMAPS_PYTHON` at the environment with these packages, e.g.
+`$env:INSITUUMAPS_PYTHON = "C:\path\to\env\python.exe"`. Unzipping falls back to Python's
+`zipfile` when there is no `unzip`.
 
 Point the dev server at other data with `pnpm --filter insituumaps dev` and a `?source=` URL
 (the server must allow cross-origin requests and support HTTP range requests; see
@@ -99,7 +105,8 @@ pnpm typecheck && pnpm lint             # whole monorepo
 ```
 
 The smoke tests need the dev and data servers running (`dev:fixture`) and a Chromium with
-WebGL 2; they find the Playwright Chromium or `INSITUUMAPS_CHROME`. Screenshots land in
+WebGL 2; they use `INSITUUMAPS_CHROME` if set, else the Playwright Chromium or an installed
+Chrome (Linux, macOS, Windows; Edge on Windows as a last resort). Screenshots land in
 `test-data/smoke/`. `smoke:local` copies one sample into the browser's private file system
 and opens it as a directory, which exercises the same code as a folder picked by the user.
 
@@ -107,6 +114,8 @@ and opens it as a directory, which exercises the same code as a folder picked by
 
 ```bash
 python3 scripts/convert_project.py <project-or-experiment-folder>
+# or, with the Python lookup above:
+node scripts/python.mjs scripts/convert_project.py <project-or-experiment-folder>
 ```
 
 adds, in place and without touching what InSituPy wrote: the AnnData layers as CSC matrices
