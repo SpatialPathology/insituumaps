@@ -11,12 +11,12 @@
     "clean": "rm -rf build dist node_modules",
     "test": "vitest run --passWithNoTests",
     "fixture": "node scripts/fixture.mjs",
-    "fixture:convert": "python3 scripts/convert_project.py test-data/fixture",
+    "fixture:convert": "node scripts/python.mjs scripts/convert_project.py test-data/fixture",
     "serve:data": "node scripts/serve-data.mjs",
     "dev:fixture": "node scripts/dev-fixture.mjs",
     "smoke": "node scripts/smoke-test.mjs",
     "smoke:local": "node scripts/smoke-local.mjs",
-    "test:converter": "python3 scripts/test_convert_project.py"
+    "test:converter": "node scripts/python.mjs scripts/test_convert_project.py"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

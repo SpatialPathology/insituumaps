@@ -16,6 +16,14 @@ const chromeCandidates = [
   "/usr/bin/chromium-browser",
   "/usr/bin/google-chrome",
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  ...(process.platform === "win32"
+    ? [
+        `${process.env.PROGRAMFILES}\\Google\\Chrome\\Application\\chrome.exe`,
+        `${process.env["PROGRAMFILES(X86)"]}\\Google\\Chrome\\Application\\chrome.exe`,
+        `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`,
+        `${process.env["PROGRAMFILES(X86)"]}\\Microsoft\\Edge\\Application\\msedge.exe`,
+      ]
+    : []),
 ].filter((c) => c !== undefined);
 
 export function findChrome() {
