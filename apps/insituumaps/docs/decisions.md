@@ -226,3 +226,29 @@ expanded. The transcript picker now offers every name of the transcript index (c
 included), not only the table's genes. Alternatives: keep the app's own picker and lift its
 12-entry cap; wait for a shared package. Reasoning: reuse first; verbatim copies keep a later
 move into `@tissuumaps/react` mechanical, which the image-layer review (6.3) decides.
+
+## D26. UI accent and wordmark from the InSituPy logo (task 6.4)
+
+Decision (scope by JW, values chosen alone): the InSituPy logo colours theme the **UI accent
+only**, set through the TissUUmaps tokens in `index.css`, so the copied components
+(`src/components`, unchanged) and the app's own controls share one accent: `--primary` is the
+logo navy `#2b2a4c` (filled buttons, active segments, switches, slider thumbs via
+`accent-color`, checkboxes via `accent-primary`; white text 13.1:1), `--accent`
+`oklch(0.95 0.02 286)` a light navy tint for hover and the highlighted autocomplete row (navy
+text 11.8:1), `--ring` `oklch(0.55 0.09 286)` a mid navy for focus borders and rings (5.0:1
+against white). Two app tokens fill the gaps: `--accent-selected` `oklch(0.91 0.035 286)` for
+the selected sample row (navy text 10.4:1) and `--brand-red` `#b31312` (logo red, 6.96:1),
+used only in the wordmark. All `sky-*` classes and `#0ea5e9` are gone from `src`. The app's
+buttons, segments and switches get a `focus-visible` outline in `--ring` (before, they relied
+on the browser default). Data palettes, transcript and channel colours, the D23 outlines,
+`--destructive` and the amber notices are unchanged. Until JW's logo exists, the header shows a
+text wordmark (`ui/Wordmark.tsx`): "InSitU" in navy and "Umaps" in the logo red, so the "UU" of
+TissUUmaps sits at the seam of the two colours; same weight (semibold), Inter, no graphic. The
+placeholder favicon is removed from the header (the logo will take that place) and recoloured to
+navy with a light cell holding a red and a salmon dot. The start screen names the app with the
+same wordmark inline. Alternatives: a warm `#eee3df` tint for hover/selection (reads beige next
+to the navy and the cool greys of the UI, so the tint is derived from the navy hue instead);
+salmon or magenta in the wordmark (salmon is 2.4:1 on white, magenta is close to category
+colours); red as `--primary` (would read as an error or a data colour). Reasoning: one navy
+accent is calm, clearly InSituPy, and far from every data colour; tokens keep the copied
+TissUUmaps components verbatim.
