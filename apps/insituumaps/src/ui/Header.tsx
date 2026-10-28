@@ -2,6 +2,7 @@ import { FolderOpen, LayoutGrid, X } from "lucide-react";
 
 import { useAppStore } from "@/state/store";
 
+import { Wordmark } from "./Wordmark";
 import { Button, Spinner } from "./controls";
 
 export function Header() {
@@ -22,11 +23,8 @@ export function Header() {
 
   return (
     <header className="flex h-11 shrink-0 items-center gap-3 border-b border-zinc-200 bg-white px-3">
-      <div className="flex items-center gap-2">
-        <img src="./favicon.svg" alt="" className="size-6" />
-        <span className="text-sm font-semibold tracking-tight">
-          InSitUUmaps
-        </span>
+      <div className="shrink-0 text-base leading-none">
+        <Wordmark />
       </div>
       {source !== null && (
         <>

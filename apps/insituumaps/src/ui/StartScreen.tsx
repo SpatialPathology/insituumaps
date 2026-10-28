@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { useAppStore } from "@/state/store";
 
+import { Wordmark } from "./Wordmark";
 import { Button, Spinner, TextInput } from "./controls";
 
 const supportsDirectoryPicker =
@@ -54,9 +55,9 @@ export function StartScreen() {
           Open a sample or an experiment
         </h1>
         <p className="mt-1 text-sm text-zinc-600">
-          InSitUUmaps shows InSituPy projects (one sample) and experiments (many
-          samples) directly from their folders. Nothing is uploaded; the browser
-          reads only what is shown.
+          <Wordmark /> shows InSituPy projects (one sample) and experiments
+          (many samples) directly from their folders. Nothing is uploaded; the
+          browser reads only what is shown.
         </p>
         <form
           className="mt-5"
