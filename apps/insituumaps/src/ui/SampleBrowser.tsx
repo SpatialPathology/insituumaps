@@ -149,8 +149,9 @@ export function SampleBrowser() {
                 <tr
                   key={sample.index}
                   className={cn(
-                    "cursor-pointer border-t border-zinc-100 hover:bg-sky-50",
-                    sample.index === sampleIndex && "bg-sky-100",
+                    "cursor-pointer border-t border-zinc-100 hover:bg-accent",
+                    sample.index === sampleIndex &&
+                      "bg-accent-selected hover:bg-accent-selected",
                   )}
                   onClick={() => void selectSample(sample.index)}
                 >

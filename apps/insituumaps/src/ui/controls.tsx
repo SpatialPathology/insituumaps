@@ -71,7 +71,7 @@ export function Select({
       disabled={disabled}
       onChange={(e) => onChange(e.target.value)}
       className={cn(
-        "h-8 w-full rounded-md border border-zinc-300 bg-white px-2 text-sm text-zinc-900 shadow-xs focus:border-sky-500 focus:ring-2 focus:ring-sky-200 focus:outline-none disabled:opacity-50",
+        "h-8 w-full rounded-md border border-zinc-300 bg-white px-2 text-sm text-zinc-900 shadow-xs focus:border-ring focus:ring-2 focus:ring-ring/30 focus:outline-none disabled:opacity-50",
         className,
       )}
     >
@@ -115,9 +115,9 @@ export function SegmentedControl<T extends string>({
           title={option.title}
           onClick={() => onChange(option.value)}
           className={cn(
-            "flex-1 rounded px-2 py-1 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+            "flex-1 rounded px-2 py-1 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40",
             value === option.value
-              ? "bg-sky-600 text-white shadow-sm"
+              ? "bg-primary text-primary-foreground shadow-sm"
               : "text-zinc-700 hover:bg-zinc-100",
           )}
         >
@@ -148,8 +148,8 @@ export function Switch({
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={cn(
-          "relative h-5 w-9 shrink-0 rounded-full transition-colors disabled:opacity-40",
-          checked ? "bg-sky-600" : "bg-zinc-300",
+          "relative h-5 w-9 shrink-0 rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-40",
+          checked ? "bg-primary" : "bg-zinc-300",
         )}
       >
         <span
@@ -221,10 +221,10 @@ export function Button({
       disabled={disabled}
       title={title}
       className={cn(
-        "inline-flex items-center justify-center gap-1.5 rounded-md border text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex items-center justify-center gap-1.5 rounded-md border text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
         size === "sm" ? "h-8 px-2.5" : "h-9 px-3",
         variant === "primary" &&
-          "border-sky-700 bg-sky-600 text-white hover:bg-sky-700",
+          "border-primary bg-primary text-primary-foreground hover:bg-primary/85",
         variant === "default" &&
           "border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-100",
         variant === "ghost" &&
@@ -269,7 +269,7 @@ export function TextInput({
       onKeyDown={onKeyDown}
       onChange={(e) => onChange(e.target.value)}
       className={cn(
-        "h-8 w-full rounded-md border border-zinc-300 bg-white px-2 text-sm text-zinc-900 shadow-xs placeholder:text-zinc-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-200 focus:outline-none",
+        "h-8 w-full rounded-md border border-zinc-300 bg-white px-2 text-sm text-zinc-900 shadow-xs placeholder:text-zinc-400 focus:border-ring focus:ring-2 focus:ring-ring/30 focus:outline-none",
         className,
       )}
     />

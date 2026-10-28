@@ -426,7 +426,7 @@ function RangeInput({
           commit();
         }
       }}
-      className="h-8 w-full rounded-md border border-zinc-300 bg-white px-2 text-sm shadow-xs focus:border-sky-500 focus:ring-2 focus:ring-sky-200 focus:outline-none"
+      className="h-8 w-full rounded-md border border-zinc-300 bg-white px-2 text-sm shadow-xs focus:border-ring focus:ring-2 focus:ring-ring/30 focus:outline-none"
     />
   );
 }

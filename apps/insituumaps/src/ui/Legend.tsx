@@ -59,7 +59,7 @@ export function CategoricalLegend({
                 type="checkbox"
                 checked={!isHidden}
                 onChange={() => onToggle(category.name)}
-                className="size-3.5 accent-sky-600"
+                className="size-3.5 accent-primary"
               />
               <span
                 className="inline-block size-3 shrink-0 rounded-sm border border-black/20"
