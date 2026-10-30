@@ -9,7 +9,9 @@
 
 /* theme tokens of the components adopted from TissUUmaps (src/components,
    see its README), mapped as in apps/tissuumaps/src/index.css; light theme
-   only; the radius scale is left at the Tailwind defaults of this app */
+   only; the radius scale is left at the Tailwind defaults of this app; the
+   UI accent (primary, accent, ring) uses the InSituPy logo colours (D26),
+   data colours do not use these tokens */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -27,6 +29,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-accent-selected: var(--accent-selected);
+  --color-brand-red: var(--brand-red);
 }
 
 :root {
@@ -36,18 +40,25 @@
   --foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  /* InSituPy navy: filled buttons, active segments, switches, slider thumbs,
+     checkboxes; white text on it 13.1:1 */
+  --primary: #2b2a4c;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  /* light navy tint: hover and highlighted rows (navy text 11.8:1) */
+  --accent: oklch(0.95 0.02 286);
+  --accent-foreground: #2b2a4c;
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /* mid navy: focus borders and rings, 5.0:1 against white */
+  --ring: oklch(0.55 0.09 286);
+  /* app tokens: selected rows (navy text 10.4:1), red of the wordmark */
+  --accent-selected: oklch(0.91 0.035 286);
+  --brand-red: #b31312;
 }
 
 html,
@@ -70,5 +81,5 @@ body {
 }
 
 input[type="range"] {
-  accent-color: #0ea5e9;
+  accent-color: var(--primary);
 }
