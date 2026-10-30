@@ -29,3 +29,6 @@ build
 *.tsbuildinfo
 
 /docs/api
+
+# shared planning folder (junction to Castalia vault, see projects/tissuumaps/planning/setup-notes.md)
+planning
