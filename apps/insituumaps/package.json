@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b tsconfig.src.json && vite build",
+    "build:plugin": "vite build --mode plugin",
     "preview": "vite preview",
     "clean": "rm -rf build dist node_modules",
     "test": "vitest run --passWithNoTests",
@@ -14,8 +15,10 @@
     "fixture:convert": "node scripts/python.mjs scripts/convert_project.py test-data/fixture",
     "serve:data": "node scripts/serve-data.mjs",
     "dev:fixture": "node scripts/dev-fixture.mjs",
+    "dev:plugin": "node scripts/dev-plugin.mjs",
     "smoke": "node scripts/smoke-test.mjs",
     "smoke:local": "node scripts/smoke-local.mjs",
+    "smoke:plugin": "node scripts/smoke-plugin.mjs",
     "test:converter": "node scripts/python.mjs scripts/test_convert_project.py"
   },
   "dependencies": {
