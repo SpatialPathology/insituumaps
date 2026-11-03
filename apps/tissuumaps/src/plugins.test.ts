@@ -43,6 +43,46 @@ describe("pluginRegistry", () => {
     });
   });
 
+  it("adds a copy of the perspective of a plugin with a mount", () => {
+    const perspective = { appliesTo: ["format"], hiddenPanels: ["images"] };
+    pluginRegistry.registerPlugin({
+      id: "p",
+      name: "P",
+      mount: () => {},
+      perspective,
+    });
+    const stored = appStore.getState().plugins.get("p")?.perspective;
+    expect(stored).toEqual(perspective);
+    expect(stored?.appliesTo).not.toBe(perspective.appliesTo);
+  });
+
+  it("ignores the perspective of a plugin without a mount", () => {
+    pluginRegistry.registerPlugin({
+      id: "p",
+      name: "P",
+      perspective: { appliesTo: ["format"], hiddenPanels: [] },
+    });
+    expect(appStore.getState().plugins.get("p")?.perspective).toBeUndefined();
+  });
+
+  it("switches to the generic user interface when the active perspective's plugin is unmounted or unregistered", () => {
+    const plugin: Plugin = {
+      id: "p",
+      name: "P",
+      mount: () => {},
+      perspective: { appliesTo: [], hiddenPanels: [] },
+    };
+    pluginRegistry.registerPlugin(plugin);
+    pluginRegistry.mountPlugin("p");
+    appStore.getState().setActivePerspectiveId("p");
+    pluginRegistry.unmountPlugin("p");
+    expect(appStore.getState().activePerspectiveId).toBeNull();
+    pluginRegistry.mountPlugin("p");
+    appStore.getState().setActivePerspectiveId("p");
+    pluginRegistry.unregisterPlugin("p");
+    expect(appStore.getState().activePerspectiveId).toBeNull();
+  });
+
   it("does not register a plugin whose setup throws", () => {
     pluginRegistry.registerPlugin({
       id: "p",

@@ -102,8 +102,9 @@ export type AppStoreState = {
 
   /**
    * The registered plugins, by plugin ID, each as its human-readable name,
-   * whether it has a user interface that can be mounted, and the element its
-   * user interface is mounted into while it is mounted
+   * whether it has a user interface that can be mounted, the element its
+   * user interface is mounted into while it is mounted, and its perspective,
+   * if it has one
    *
    * Written by the plugin registry, which owns the plugin lifecycle and keeps
    * the plugin objects themselves to itself, so that nothing a plugin owns ends
@@ -111,8 +112,19 @@ export type AppStoreState = {
    */
   plugins: Map<
     string,
-    { name: string; mountable: boolean; container?: HTMLElement }
+    {
+      name: string;
+      mountable: boolean;
+      container?: HTMLElement;
+      perspective?: { appliesTo: string[]; hiddenPanels: string[] };
+    }
   >;
+
+  /**
+   * The ID of the plugin whose perspective is active, or `null` for the
+   * generic user interface (see `Plugin.perspective`)
+   */
+  activePerspectiveId: string | null;
 
   /**
    * The ID of the active panel, i.e. the panel whose tab was selected last
@@ -312,6 +324,17 @@ export type AppStoreActions = {
     type: string,
     dataProvider: TableDataProvider<TableDataSource, TableData>,
   ) => void;
+
+  /**
+   * Activates the perspective of a plugin, or the generic user interface
+   *
+   * Only switches the arrangement of the user interface; mounting the
+   * plugin is up to the caller.
+   *
+   * @param activePerspectiveId - The ID of the plugin whose perspective to
+   * activate, or `null` for the generic user interface
+   */
+  setActivePerspectiveId: (activePerspectiveId: string | null) => void;
 
   /**
    * Registers a project importer, replacing one registered with the same ID

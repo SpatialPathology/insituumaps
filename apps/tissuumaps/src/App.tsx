@@ -14,11 +14,13 @@ import { IconButton } from "@/components/common/icon-button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useActivePanelSync } from "@/hooks/useActivePanelSync";
 import { useFileDragTracking } from "@/hooks/useFileDrag";
+import { usePerspectivePanels } from "@/hooks/usePerspectivePanels";
 import { usePluginPanels } from "@/hooks/usePluginPanels";
 
 import "./App.css";
 import { NotificationCenter } from "./components/app/NotificationCenter";
 import { PanelDropTarget } from "./components/app/PanelDropTarget";
+import { PerspectiveMenu } from "./components/app/PerspectiveMenu";
 import { PluginMenu } from "./components/app/PluginMenu";
 import { DialogProvider } from "./components/dialogs/DialogProvider";
 import { ImagesPanel } from "./components/panels/ImagesPanel";
@@ -139,14 +141,15 @@ const dockviewTabComponents = {
 };
 
 /**
- * The plugins menu and the dark mode toggle shown at the right end of the
- * dockview tab bar
+ * The perspective menu, the plugins menu and the dark mode toggle shown at the
+ * right end of the dockview tab bar
  */
 function DockviewRightHeaderActionsComponent() {
   const dark = useSettingsStore((state) => state.dark);
   const setDark = useSettingsStore((state) => state.setDark);
   return (
     <div className="flex">
+      <PerspectiveMenu />
       <PluginMenu />
       <IconButton
         label={dark ? "Light mode" : "Dark mode"}
@@ -159,6 +162,21 @@ function DockviewRightHeaderActionsComponent() {
     </div>
   );
 }
+
+/**
+ * The built-in panels shown in the group to the right of the viewer, in their
+ * initial order
+ *
+ * Perspectives can hide some of them, see `usePerspectivePanels`.
+ */
+const builtInPanels = [
+  { id: PanelId.project, title: "Project", component: "ProjectPanel" },
+  { id: PanelId.images, title: "Images", component: "ImagesPanel" },
+  { id: PanelId.labels, title: "Labels", component: "LabelsPanel" },
+  { id: PanelId.points, title: "Points", component: "PointsPanel" },
+  { id: PanelId.shapes, title: "Shapes", component: "ShapesPanel" },
+  { id: PanelId.tables, title: "Tables", component: "TablesPanel" },
+];
 
 /**
  * Creates the application's initial panel layout
@@ -177,10 +195,9 @@ const onDockviewReady = (event: DockviewReadyEvent) => {
   });
   viewerPanel.group.header.hidden = true;
   viewerPanel.group.locked = true;
+  const [projectPanelDefinition, ...otherPanelDefinitions] = builtInPanels;
   const projectPanel = event.api.addPanel({
-    id: PanelId.project,
-    title: "Project",
-    component: "ProjectPanel",
+    ...projectPanelDefinition!,
     tabComponent: "PersistentPanelHeader",
     initialWidth: 420,
     position: {
@@ -188,41 +205,13 @@ const onDockviewReady = (event: DockviewReadyEvent) => {
       direction: "right",
     },
   });
-  event.api.addPanel({
-    id: PanelId.images,
-    title: "Images",
-    component: "ImagesPanel",
-    tabComponent: "PersistentPanelHeader",
-    position: { referenceGroup: projectPanel.group },
-  });
-  event.api.addPanel({
-    id: PanelId.labels,
-    title: "Labels",
-    component: "LabelsPanel",
-    tabComponent: "PersistentPanelHeader",
-    position: { referenceGroup: projectPanel.group },
-  });
-  event.api.addPanel({
-    id: PanelId.points,
-    title: "Points",
-    component: "PointsPanel",
-    tabComponent: "PersistentPanelHeader",
-    position: { referenceGroup: projectPanel.group },
-  });
-  event.api.addPanel({
-    id: PanelId.shapes,
-    title: "Shapes",
-    component: "ShapesPanel",
-    tabComponent: "PersistentPanelHeader",
-    position: { referenceGroup: projectPanel.group },
-  });
-  event.api.addPanel({
-    id: PanelId.tables,
-    title: "Tables",
-    component: "TablesPanel",
-    tabComponent: "PersistentPanelHeader",
-    position: { referenceGroup: projectPanel.group },
-  });
+  for (const definition of otherPanelDefinitions) {
+    event.api.addPanel({
+      ...definition,
+      tabComponent: "PersistentPanelHeader",
+      position: { referenceGroup: projectPanel.group },
+    });
+  }
   projectPanel.api.setActive();
 };
 
@@ -240,6 +229,9 @@ export function App() {
 
   // The panels contributed by plugins join the group of the project panel
   usePluginPanels(dockviewApi, PanelId.project);
+  // ...and perspectives hide some of the built-in ones (after plugin panels
+  // are added, so that the perspective's panel exists when it is activated)
+  usePerspectivePanels(dockviewApi, builtInPanels);
   useActivePanelSync(dockviewApi);
   useFileDragTracking();
 

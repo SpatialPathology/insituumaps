@@ -9,7 +9,11 @@ import {
 } from "./data/io/project";
 import { enableBuiltInDataProviders } from "./data/providers";
 import { notifyTissUUmapsLoaded } from "./events";
-import { enableBuiltInPlugins, startPluginRegistry } from "./plugins";
+import {
+  enableBuiltInPlugins,
+  pluginRegistry,
+  startPluginRegistry,
+} from "./plugins";
 import { appStore } from "./stores/app";
 import { projectStore } from "./stores/project";
 
@@ -22,13 +26,14 @@ const fallbackProjectUrl = "project.tm4";
  * Registers the built-in data providers, starts the data caches and the plugin
  * registry, registers the built-in plugins, marks the project open once it has
  * a source or data, collapses the expanded objects whenever another project is
- * loaded or the project is closed,
+ * loaded or the project is closed, selects the perspective of each project,
  * starts loading the initial project, and finally announces that the
  * application has loaded.
  * The project is only loading, not loaded, by the time this returns.
  *
  * @returns A callback that cancels the initial project loading, stops
- * collapsing the expanded objects and marking the project open, and stops the
+ * selecting perspectives, collapsing the expanded objects and marking the
+ * project open, and stops the
  * plugin registry and the data caches, invoked on hot module replacement
  */
 export function bootstrap(): () => void {
@@ -38,10 +43,12 @@ export function bootstrap(): () => void {
   enableBuiltInPlugins();
   const stopMarkingProjectOpen = startMarkingProjectOpen();
   const stopCollapsingOnProjectSwitch = startCollapsingOnProjectSwitch();
+  const stopSelectingPerspectives = startSelectingPerspectives();
   const cancelInitialProjectLoading = loadInitialProject();
   notifyTissUUmapsLoaded();
   return () => {
     cancelInitialProjectLoading();
+    stopSelectingPerspectives();
     stopCollapsingOnProjectSwitch();
     stopMarkingProjectOpen();
     stopPluginRegistry();
@@ -88,6 +95,73 @@ function startCollapsingOnProjectSwitch(): () => void {
       });
     }
   });
+}
+
+/** The GET parameter naming the perspective to show, see `Plugin.perspective` */
+const perspectiveURLParam = "perspective";
+
+/**
+ * Selects the perspective of the open project whenever another project is
+ * loaded or the project is closed, and whenever the registered perspectives
+ * change
+ *
+ * The perspective named by the {@link perspectiveURLParam} GET parameter wins,
+ * the generic user interface if no registered plugin has that perspective.
+ * Otherwise, the perspective that applies to the importer of the project is
+ * activated, if exactly one does, and the generic user interface if none or
+ * several do. An activated perspective's plugin is mounted.
+ *
+ * @returns A callback that stops selecting perspectives
+ */
+function startSelectingPerspectives(): () => void {
+  const perspectiveIds = () =>
+    [...appStore.getState().plugins]
+      .filter(([, plugin]) => plugin.perspective !== undefined)
+      .map(([pluginId]) => pluginId)
+      .join("\n");
+  const select = () => {
+    const { plugins, setActivePerspectiveId } = appStore.getState();
+    const { importerId } = projectStore.getState();
+    const requestedId = new URLSearchParams(window.location.search).get(
+      perspectiveURLParam,
+    );
+    let perspectiveId: string | null = null;
+    if (requestedId !== null) {
+      perspectiveId =
+        plugins.get(requestedId)?.perspective !== undefined
+          ? requestedId
+          : null;
+    } else if (importerId !== null) {
+      const applying = [...plugins].filter(([, plugin]) =>
+        plugin.perspective?.appliesTo.includes(importerId),
+      );
+      perspectiveId = applying.length === 1 ? applying[0]![0] : null;
+    }
+    setActivePerspectiveId(perspectiveId);
+    if (perspectiveId !== null) {
+      pluginRegistry.mountPlugin(perspectiveId);
+    }
+  };
+  let lastPerspectiveIds = perspectiveIds();
+  const unsubscribeApp = appStore.subscribe(() => {
+    // mounting changes the plugins too, which must not undo the user's choice
+    const currentPerspectiveIds = perspectiveIds();
+    if (currentPerspectiveIds !== lastPerspectiveIds) {
+      lastPerspectiveIds = currentPerspectiveIds;
+      select();
+    }
+  });
+  const unsubscribeProject = projectStore.subscribe(
+    (projectState, prevProjectState) => {
+      if (projectState.instanceId !== prevProjectState.instanceId) {
+        select();
+      }
+    },
+  );
+  return () => {
+    unsubscribeApp();
+    unsubscribeProject();
+  };
 }
 
 /**
