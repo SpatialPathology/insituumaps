@@ -10,7 +10,9 @@
  */
 import { type PluginStores, createProject } from "@tissuumaps/core";
 
+import type { InSituProject } from "@/insitupy";
 import { type AppState, useAppStore as insitupyStore } from "@/state/store";
+import type { RegionUm } from "@/transcripts/indexFormat";
 
 import { mergeOwned } from "./mergeOwned";
 
@@ -27,11 +29,41 @@ function sampleName(state: AppState): string {
   return sample?.name ?? state.project?.sampleId ?? "InSituPy sample";
 }
 
+/** The extent used when no image of a sample knows its size, in µm */
+const fallbackExtentUm = 100_000;
+
+/**
+ * Returns the extent of a sample in µm, from the largest of its images
+ *
+ * Transcripts are loaded for the region the fork store believes to be in
+ * view, which the standalone app takes from its viewer. A plugin cannot read
+ * the app's viewport, so the plugin reports the whole sample as in view: the
+ * transcripts of a gene are loaded for the whole sample once.
+ *
+ * @param project - The open sample
+ * @returns The region from the world origin to the far corner of the largest
+ * image, or a large square if no image knows its size
+ */
+export function sampleExtent(project: InSituProject): RegionUm {
+  let width = 0;
+  let height = 0;
+  for (const image of project.images) {
+    if (image.size !== undefined) {
+      width = Math.max(width, image.size.width * image.pixelSize);
+      height = Math.max(height, image.size.height * image.pixelSize);
+    }
+  }
+  return width > 0 && height > 0
+    ? { x: 0, y: 0, width, height }
+    : { x: 0, y: 0, width: fallbackExtentUm, height: fallbackExtentUm };
+}
+
 /**
  * Starts copying the fork store's model into the app's project store
  *
  * Also hands a picked folder to the app as its workspace, since the data
- * sources of a folder are workspace paths, and closes the plugin's source
+ * sources of a folder are workspace paths, reports the whole sample as in
+ * view (see {@link sampleExtent}), and closes the plugin's source
  * when the app's project is replaced by something else, such as a project the
  * user opened in the Project panel.
  *
@@ -76,6 +108,8 @@ export function startProjectBridge({
         source: null,
         instanceId: writtenInstanceId,
       });
+      // the whole sample counts as in view (see sampleExtent)
+      state.setViewport(sampleExtent(state.project), 0);
     } else if (projectStore.getState().instanceId === writtenInstanceId) {
       projectStore.setState(mergeOwned(projectStore.getState(), state.model));
     }

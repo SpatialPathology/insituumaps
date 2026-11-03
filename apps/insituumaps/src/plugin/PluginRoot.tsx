@@ -13,7 +13,16 @@ import { createPortal } from "react-dom";
 import { useAppStore } from "@/state/store";
 import { Notices } from "@/ui/Notices";
 import { SampleBrowser } from "@/ui/SampleBrowser";
-import { CellLayerSection, ColorSection, SampleSection } from "@/ui/Sidebar";
+import {
+  CellLayerSection,
+  ColorSection,
+  ImagesSection,
+  IssuesSection,
+  OutlineSection,
+  OverlaysSection,
+  SampleSection,
+  TranscriptsSection,
+} from "@/ui/Sidebar";
 import { StartScreen } from "@/ui/StartScreen";
 import { Button, Spinner } from "@/ui/controls";
 
@@ -103,6 +112,11 @@ export function PluginRoot() {
           <SampleSection />
           <CellLayerSection />
           <ColorSection />
+          <OutlineSection />
+          <ImagesSection />
+          <TranscriptsSection />
+          <OverlaysSection />
+          <IssuesSection />
         </>
       )}
       <WindowOverlays />
