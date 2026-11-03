@@ -1,6 +1,6 @@
 # InSituPy perspective prototype: implementation spec
 
-Status: planning, 2026-11-03. Branch `feat/insitupy-perspective-prototype` of `SpatialPathology/insituumaps`, started from fork `main` at `da0165c`.
+Status: milestone 1a implemented (2026-11-03), 1b and step 2 open. Branch `feat/insitupy-perspective-prototype` of `SpatialPathology/insituumaps`, started from fork `main` at `da0165c`. Section 12 lists where the implementation differs from this plan.
 
 This spec turns section 12 of the design doc ([perspective-prototype.md](./perspective-prototype.md)) into ordered tasks for a later implementation session. It covers milestone 1a, milestone 1b and step 2. The demo recording (step 3) is done locally by Johannes after step 2.
 
@@ -278,3 +278,17 @@ Found by checking the doc's references against fork `da0165c` and upstream `67de
 8. Section 12: plugins have no `loadProject`. A plugin loads a project by setting the project store with a fresh `instanceId`. Folder sources need the app's workspace set to the folder (`setWorkspace`).
 9. Section 12.1: checked. The app keeps unknown URL parameters: it only reads and writes `project` (`bootstrap.ts:96-108`, `data/io/project.ts:292-305`). With `?source=` and no `?project=`, it also tries `project.tm4` and logs a harmless 404.
 10. Not checked in this session: the InSituPy references (`insitupy/...`) and issues #341 and #390, because neither repository was reachable from the session.
+
+## 12. Implementation notes (as built)
+
+Where milestone 1a differs from the plan above, and what was learned:
+
+1. **No separate Vite config.** The plugin is built by `vite.config.ts` in a `plugin` mode (`vite build --mode plugin`), because a second config file would have needed changes to the root ESLint and TypeScript setup. `build:plugin` and `dev:plugin` work as described in section 4.
+2. **Order of merged objects.** `mergeOwned` lists the plugin's objects in the model's order, followed by the user's objects in their current order, so the user's objects are drawn on top. Keeping user objects at their exact positions would have made the order of the plugin's own objects depend on history.
+3. **Debug handle.** `window.insitupyPlugin` (`{ insitupyStore, stores }`) is always set, not only in development builds, because the plugin is always built in production mode. The smoke test reads it.
+4. **Commits.** Tasks 1a.2 to 1a.6 are one commit, because they all wire into `src/plugin/index.tsx`.
+5. **Store types.** `PluginStores` only type-checks in `apps/insituumaps` with the zustand immer type augmentation loaded (`src/plugin/stores.d.ts`).
+6. **CSS.** The plugin's root rules sit in Tailwind's base layer, so that utilities such as `bg-transparent` on the full-window overlays win over the root's white background.
+7. **Overlays.** The sample browser and the notices are portalled to the document body, so they cover the window rather than the narrow panel.
+8. **Bundle size.** `dist-plugin/insitupy-plugin.js` is about 3.2 MB (1.0 MB gzipped), most of it the storage package.
+9. **Checks.** `smoke:plugin` passes all 28 checks on the fixture: the experiment's sample browser, both samples drawn by the app's viewer, gene and categorical colouring with legends, category hiding, the cell layer switch, user objects surviving a rebuild, the generic Labels panel listing the plugin's objects, and the plugin returning to its start screen when the app's project is replaced. The standalone `smoke` still passes.

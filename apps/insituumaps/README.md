@@ -94,6 +94,23 @@ pnpm --filter insituumaps preview        # serves dist locally
 The build uses relative asset paths, so `dist/` can live at any path on any static host.
 Add `?source=<folder url>` to its URL, or host a redirect that fills it in.
 
+### TissUUmaps plugin (prototype)
+
+The same sources also build as a TissUUmaps plugin, which shows the sidebar in a panel of the
+TissUUmaps app and lets the app's viewer draw the sample (see
+`docs/perspective-prototype-spec.md` at the repository root):
+
+```bash
+pnpm --filter tissuumaps exec vite --port 5173 --strictPort  # the TissUUmaps app
+pnpm --filter insituumaps dev:fixture                        # the fixture data (and this app)
+pnpm --filter insituumaps dev:plugin                         # rebuilds and serves the plugin
+```
+
+In the TissUUmaps app, open the plugins menu (the dots in the tab bar), choose "Load plugin
+from URL…" and enter `http://localhost:8788/insitupy-plugin.js`. Opening the app as
+`http://localhost:5173/?source=http://localhost:8787/fixture/` first makes the plugin open the
+fixture right away. `pnpm --filter insituumaps build:plugin` writes `dist-plugin/` once.
+
 ### Test
 
 ```bash
@@ -101,6 +118,7 @@ pnpm --filter insituumaps test           # vitest: data layer, transcript index,
 pnpm --filter insituumaps test:converter # python unittest of the converter on synthetic data
 pnpm --filter insituumaps smoke          # headless Chromium end-to-end run on the fixture
 pnpm --filter insituumaps smoke:local    # the same through the local-folder code path
+pnpm --filter insituumaps smoke:plugin   # the plugin in the TissUUmaps app (needs dev:plugin too)
 pnpm typecheck && pnpm lint             # whole monorepo
 ```
 
