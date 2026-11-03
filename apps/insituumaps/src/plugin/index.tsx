@@ -2,20 +2,37 @@
  * The InSituPy viewer as a TissUUmaps plugin (see
  * docs/perspective-prototype-spec.md)
  *
+ * Setting the plugin up registers its data providers and starts copying the
+ * fork store's model into the app's project store; mounting it shows the
+ * start screen or the sidebar sections in the plugin's panel. A `source` GET
+ * parameter is opened right away, as in the standalone app.
+ *
  * The module's default export is the plugin, so that the app can load it
  * through "Load plugin from URL". Included in a page as a module script, it
  * registers itself, as described in docs/development/plugins.md.
  */
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import type { Plugin, PluginRegistry } from "@tissuumaps/core";
+import type { Plugin, PluginRegistry, PluginStores } from "@tissuumaps/core";
 
+import { useAppStore as insitupyStore } from "@/state/store";
+import { readStateFromUrl } from "@/state/url";
+
+import { PluginRoot } from "./PluginRoot";
+import { startProjectBridge } from "./bridge";
 import css from "./plugin.css?inline";
+import { registerDataProviders } from "./providers";
 
 declare global {
   interface Window {
     /** The TissUUmaps plugin registry, once the app has started up */
     tissuumaps?: PluginRegistry;
+    /** The fork store and the app's stores, for the console and smoke tests */
+    insitupyPlugin?: {
+      insitupyStore: typeof insitupyStore;
+      stores: PluginStores;
+    };
   }
 }
 
@@ -25,17 +42,35 @@ export const pluginId = "insitupy";
 const plugin: Plugin = {
   id: pluginId,
   name: "InSituPy",
-  setup: () => {
+  setup: (stores) => {
     const style = document.createElement("style");
     style.dataset["plugin"] = pluginId;
     style.textContent = css;
     document.head.append(style);
-    return () => style.remove();
+    registerDataProviders(stores);
+    const stopBridge = startProjectBridge(stores);
+    window.insitupyPlugin = { insitupyStore, stores };
+
+    // a dataset named in the URL is opened and shown right away
+    const { source } = readStateFromUrl();
+    if (source !== undefined && insitupyStore.getState().source === null) {
+      void insitupyStore.getState().openUrl(source);
+      // the plugin is only registered once setup has returned
+      queueMicrotask(() => window.tissuumaps?.mountPlugin(pluginId));
+    }
+
+    return () => {
+      stopBridge();
+      delete window.insitupyPlugin;
+      style.remove();
+    };
   },
   mount: (container) => {
     const root = createRoot(container);
     root.render(
-      <div className="insitupy-plugin p-3 text-sm">InSituPy plugin loaded</div>,
+      <StrictMode>
+        <PluginRoot />
+      </StrictMode>,
     );
     return () => root.unmount();
   },

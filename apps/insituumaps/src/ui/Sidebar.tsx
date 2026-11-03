@@ -45,7 +45,7 @@ export function Sidebar() {
   );
 }
 
-function SampleSection() {
+export function SampleSection() {
   const experiment = useAppStore((s) => s.experiment);
   const sampleIndex = useAppStore((s) => s.sampleIndex);
   const selectSample = useAppStore((s) => s.selectSample);
@@ -83,7 +83,7 @@ function SampleSection() {
   );
 }
 
-function CellLayerSection() {
+export function CellLayerSection() {
   const project = useAppStore((s) => s.project);
   const selection = useAppStore((s) => s.selection);
   const status = useAppStore((s) => s.cellLayerStatus);
@@ -132,7 +132,7 @@ function CellLayerSection() {
 
 type ColorMode = "none" | "gene" | "obs";
 
-function ColorSection() {
+export function ColorSection() {
   const cellLayer = useAppStore((s) => s.cellLayer);
   const selection = useAppStore((s) => s.selection);
   const legend = useAppStore((s) => s.legend);
@@ -431,7 +431,7 @@ function RangeInput({
   );
 }
 
-function OutlineSection() {
+export function OutlineSection() {
   const cellLayer = useAppStore((s) => s.cellLayer);
   const selection = useAppStore((s) => s.selection);
   const setMask = useAppStore((s) => s.setMask);
@@ -550,7 +550,7 @@ function OutlineSection() {
   );
 }
 
-function ImagesSection() {
+export function ImagesSection() {
   const project = useAppStore((s) => s.project);
   const selection = useAppStore((s) => s.selection);
   const setImage = useAppStore((s) => s.setImage);
@@ -665,7 +665,7 @@ function GrayscaleControls({
   );
 }
 
-function TranscriptsSection() {
+export function TranscriptsSection() {
   const project = useAppStore((s) => s.project);
   const selection = useAppStore((s) => s.selection);
   const genes = useAppStore((s) => s.transcriptGenes);
@@ -767,7 +767,7 @@ function TranscriptsSection() {
   );
 }
 
-function OverlaysSection() {
+export function OverlaysSection() {
   const project = useAppStore((s) => s.project);
   const selection = useAppStore((s) => s.selection);
   const toggleOverlay = useAppStore((s) => s.toggleOverlay);
@@ -805,7 +805,7 @@ function OverlaysSection() {
   );
 }
 
-function IssuesSection() {
+export function IssuesSection() {
   const issues = useAppStore((s) => s.issues);
   const [open, setOpen] = useState(false);
   if (issues.length === 0) {

@@ -33,7 +33,7 @@ import {
   buildViewerModel,
   cellTableId,
   emptyViewerModel,
-  nucleusTableId,
+  nucleusTableSource,
 } from "@/viewer/model";
 import { RemappedTableData } from "@/viewer/remappedTable";
 import {
@@ -355,16 +355,19 @@ export const useAppStore = create<AppState>()((set, get) => {
       const nuclei = cellLayer.masks.nuclei;
       if (nuclei !== undefined && nuclei.labelMapping.kind === "mapped") {
         const labelToRow = nuclei.labelMapping.labelToRow;
-        loaders.registerVirtualTable(nucleusTableId, async (options) => {
-          const cellTable = get().model.tables.find(
-            (t) => t.id === cellTableId,
-          );
-          if (cellTable === undefined) {
-            throw new Error("The cell table is not part of the model");
-          }
-          const base = await loaders.loadTable(cellTable, options);
-          return RemappedTableData.fromLabelToRow(base, labelToRow);
-        });
+        loaders.registerVirtualTable(
+          nucleusTableSource(cellLayer),
+          async (options) => {
+            const cellTable = get().model.tables.find(
+              (t) => t.id === cellTableId,
+            );
+            if (cellTable === undefined) {
+              throw new Error("The cell table is not part of the model");
+            }
+            const base = await loaders.loadTable(cellTable, options);
+            return RemappedTableData.fromLabelToRow(base, labelToRow);
+          },
+        );
       }
       const selection = get().selection;
       // keep the user's choices where they still apply

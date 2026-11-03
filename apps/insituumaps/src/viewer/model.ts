@@ -42,6 +42,15 @@ export const sampleLayerId = "sample";
 export const cellTableId = "cells";
 /** ID of the remapped table that colours a mapped nucleus mask */
 export const nucleusTableId = "nuclei";
+/**
+ * The source of the remapped nucleus table's virtual data source
+ *
+ * It names the cell table it remaps, so that the data sources of different
+ * samples and cell layers differ: data caches key their entries by data source.
+ */
+export function nucleusTableSource(cellLayer: CellLayer): string {
+  return `${nucleusTableId}:${cellLayer.key}:${cellLayer.table.dataSource.source ?? ""}`;
+}
 /** ID of the labels object filling the selected mask with the colouring */
 export const maskLabelsId = "mask";
 /** ID of the labels object drawing the neutral outlines of a mask */
@@ -200,7 +209,7 @@ export function buildViewerModel(options: {
               name: `Nuclei (${cellLayer.key})`,
               dataSource: {
                 type: virtualTableDataSourceType,
-                source: nucleusTableId,
+                source: nucleusTableSource(cellLayer),
               },
             }),
           );
