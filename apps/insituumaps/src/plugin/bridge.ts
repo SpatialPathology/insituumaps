@@ -14,6 +14,7 @@ import type { InSituProject } from "@/insitupy";
 import { type AppState, useAppStore as insitupyStore } from "@/state/store";
 import type { RegionUm } from "@/transcripts/indexFormat";
 
+import { insitupyImporterId } from "./importer";
 import { mergeOwned } from "./mergeOwned";
 
 /**
@@ -65,7 +66,8 @@ export function sampleExtent(project: InSituProject): RegionUm {
  * sources of a folder are workspace paths, reports the whole sample as in
  * view (see {@link sampleExtent}), and closes the plugin's source
  * when the app's project is replaced by something else, such as a project the
- * user opened in the Project panel.
+ * user opened in the Project panel. A project the app loaded through the
+ * plugin's importer is not something else: the bridge adopts it.
  *
  * @param stores - The stores the app hands to the plugin
  * @returns A callback that stops copying
@@ -136,10 +138,20 @@ export function startProjectBridge({
 
   const unsubscribeProject = projectStore.subscribe((state, prevState) => {
     if (
-      writtenInstanceId !== null &&
-      state.instanceId !== prevState.instanceId &&
-      state.instanceId !== writtenInstanceId
+      state.instanceId === prevState.instanceId ||
+      state.instanceId === writtenInstanceId
     ) {
+      return;
+    }
+    if (
+      state.importerId === insitupyImporterId &&
+      insitupyStore.getState().source !== null
+    ) {
+      // the app loaded the project our importer returned: it is the plugin's
+      writtenInstanceId = state.instanceId;
+      return;
+    }
+    if (writtenInstanceId !== null) {
       writtenInstanceId = null;
       shownInstanceId = null;
       if (insitupyStore.getState().source !== null) {
