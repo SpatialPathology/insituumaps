@@ -1,4 +1,5 @@
 .all-contributorsrc
 docs/api/
 apps/insituumaps/test-data/
+apps/insituumaps/dist-plugin/
 pnpm-lock.yaml

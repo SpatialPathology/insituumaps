@@ -13,6 +13,8 @@ export default defineConfig([
     "**/dist",
     "**/node_modules",
     "docs/api",
+    // the InSitUUmaps viewer built as a TissUUmaps plugin
+    "apps/insituumaps/dist-plugin",
   ]),
   js.configs.recommended,
   tseslint.configs.recommendedTypeChecked,
