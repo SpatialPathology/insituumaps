@@ -10,6 +10,10 @@ The **TissUUmaps project file** (in JSON format, file name ending with `.tm4`) d
 
 The TissUUmaps project file and corresponding data may be stored locally (client-side) or hosted remotely (server-side; together with the TissUUmaps application or elsewhere).
 
+## Datasets
+
+Plugins can also open a **dataset** that is not a project file, such as a folder in a format the plugin knows, by building the project from it. Such a plugin registers a _project importer_ (see [Plugins](../development/plugins.md#project-importers)). Once one is loaded, the welcome view in the Project tab offers "Open dataset from URL…", and the `source` GET parameter names a dataset to open on startup (e.g. `?source=https://example.org/data/sample/`). The project is built anew each time the dataset is opened; saving it writes an ordinary project file.
+
 ## Workspaces
 
 In Chromium-based browsers (e.g. Chrome), a workspace can be opened alongside a project. A workspace is a local folder that TissUUmaps gets read access to, so that file paths within it can be resolved. Other browsers (e.g. Firefox, Safari) do not support workspaces. The user interface calls the workspace a **folder**.

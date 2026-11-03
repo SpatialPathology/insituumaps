@@ -1,7 +1,12 @@
 import { ProjectUtils } from "@tissuumaps/core";
 
 import { startDataCaches } from "./data/cache";
-import { loadProjectFromURL, projectURLParam } from "./data/io/project";
+import { loadDatasetFromSource } from "./data/io/dataset";
+import {
+  datasetURLParam,
+  loadProjectFromURL,
+  projectURLParam,
+} from "./data/io/project";
 import { enableBuiltInDataProviders } from "./data/providers";
 import { notifyTissUUmapsLoaded } from "./events";
 import { enableBuiltInPlugins, startPluginRegistry } from "./plugins";
@@ -87,15 +92,21 @@ function startCollapsingOnProjectSwitch(): () => void {
 
 /**
  * Starts loading the project named by the {@link projectURLParam} GET
- * parameter, falling back to {@link fallbackProjectUrl} if it is absent or empty
+ * parameter or, without one, the dataset named by the {@link datasetURLParam}
+ * GET parameter (see {@link openInitialDataset}), falling back to
+ * {@link fallbackProjectUrl} if both are absent or empty
  *
  * Failures are logged, unless loading was cancelled.
  *
  * @returns A callback that cancels the loading
  */
 function loadInitialProject(): () => void {
-  const abortController = new AbortController();
   const params = new URLSearchParams(window.location.search);
+  const datasetSource = params.get(datasetURLParam);
+  if (!params.get(projectURLParam) && datasetSource) {
+    return openInitialDataset(datasetSource);
+  }
+  const abortController = new AbortController();
   const projectUrl = params.get(projectURLParam) || fallbackProjectUrl;
   loadProjectFromURL(projectUrl, { signal: abortController.signal }).catch(
     (error) => {
@@ -105,4 +116,70 @@ function loadInitialProject(): () => void {
     },
   );
   return () => abortController.abort();
+}
+
+/**
+ * Opens the dataset named in the URL through a project importer, retrying
+ * whenever another importer is registered until one supports it
+ *
+ * Importers are registered by plugins, which may be loaded after startup, e.g.
+ * from the plugins menu. Retrying ends once the dataset is open, once opening
+ * it failed, or once another project is loaded or the project is cleared.
+ * Failures are logged, unless opening was cancelled.
+ *
+ * @param source - The source of the dataset
+ * @returns A callback that cancels opening the dataset and stops retrying
+ */
+function openInitialDataset(source: string): () => void {
+  const abortController = new AbortController();
+  let opening = false;
+  let retry = false;
+  let stopRetrying = () => {};
+  const stop = () => {
+    stopRetrying();
+    abortController.abort();
+  };
+  const tryOpening = () => {
+    if (opening) {
+      retry = true; // an importer was registered while asking the others
+      return;
+    }
+    opening = true;
+    retry = false;
+    loadDatasetFromSource(source, { signal: abortController.signal })
+      .then((opened) => {
+        opening = false;
+        if (opened) {
+          stopRetrying();
+        } else if (retry) {
+          tryOpening();
+        }
+      })
+      .catch((error: unknown) => {
+        opening = false;
+        if (!abortController.signal.aborted) {
+          stopRetrying();
+          console.error(`Failed to open dataset from ${source}:`, error);
+        }
+      });
+  };
+  const unsubscribeImporters = appStore.subscribe((appState, prevAppState) => {
+    if (appState.projectImporters !== prevAppState.projectImporters) {
+      tryOpening();
+    }
+  });
+  const unsubscribeProject = projectStore.subscribe(
+    (projectState, prevProjectState) => {
+      // the user opened something else in the meantime
+      if (!opening && projectState.instanceId !== prevProjectState.instanceId) {
+        stop();
+      }
+    },
+  );
+  stopRetrying = () => {
+    unsubscribeImporters();
+    unsubscribeProject();
+  };
+  tryOpening();
+  return stop;
 }

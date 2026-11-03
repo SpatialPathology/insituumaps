@@ -33,6 +33,12 @@ export type ProjectStoreState = Project & {
    * new project can be told apart from edits to the open one
    */
   instanceId: string;
+  /**
+   * The ID of the project importer that built the open project from a
+   * dataset, or `null` if the project was not imported (e.g. loaded from a
+   * project file, or started empty)
+   */
+  importerId: string | null;
 };
 
 /**

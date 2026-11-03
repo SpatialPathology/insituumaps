@@ -1,7 +1,9 @@
 import { useCallback } from "react";
 
+import { useAlertDialog } from "@/components/dialogs/AlertDialog/hooks";
 import { useConfirmDialog } from "@/components/dialogs/ConfirmDialog/hooks";
 import { usePromptDialog } from "@/components/dialogs/PromptDialog/hooks";
+import { loadDatasetFromSource, setDatasetURLParam } from "@/data/io/dataset";
 import {
   clearProjectURLParam,
   loadProjectFromFile,
@@ -105,6 +107,45 @@ export function useOpenProjectFromURL(): () => void {
         console.error("Failed to load project from URL", error);
       });
   }, [prompt]);
+}
+
+/**
+ * Returns a callback that asks the user for the URL of a dataset, and opens it
+ * through the first project importer that supports it
+ *
+ * If no importer supports the dataset, or opening it fails, the user is told
+ * so in an alert dialog.
+ *
+ * @returns The callback
+ */
+export function useOpenDatasetFromURL(): () => void {
+  const prompt = usePromptDialog();
+  const alert = useAlertDialog();
+
+  return useCallback(() => {
+    void prompt({ title: "Enter dataset URL to open" }).then(async (value) => {
+      const source = value?.trim();
+      if (!source) {
+        return;
+      }
+      try {
+        if (await loadDatasetFromSource(source)) {
+          setDatasetURLParam(source);
+        } else {
+          await alert({
+            title: "Dataset not recognized",
+            body: `None of the loaded plugins can open ${source}.`,
+          });
+        }
+      } catch (error) {
+        console.error(`Failed to open dataset from ${source}`, error);
+        await alert({
+          title: "Failed to open dataset",
+          body: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+  }, [alert, prompt]);
 }
 
 /**

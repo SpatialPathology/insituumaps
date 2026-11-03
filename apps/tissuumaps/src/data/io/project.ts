@@ -14,6 +14,12 @@ import { projectStore } from "@/stores/project";
 export const projectURLParam = "project";
 
 /**
+ * The GET parameter naming a dataset to open through a project importer, see
+ * `loadDatasetFromSource`
+ */
+export const datasetURLParam = "source";
+
+/**
  * Creates a deep copy of a project, keeping only the project's own properties
  *
  * This detaches the copy from the project store, and drops the store's actions
@@ -57,10 +63,13 @@ function cleanProject(project: Project): Project {
  * @param projectSource - Where the project was loaded from: its absolute URL,
  * the workspace-relative path of the project file (with `/` prefix), or `null`
  * if it was loaded from neither
+ * @param importerId - The ID of the project importer that built the project
+ * from a dataset, if any
  */
 export function loadProject(
   project: Project,
   projectSource: string | null,
+  importerId: string | null = null,
 ): void {
   projectStore.setState(
     freeze(
@@ -68,6 +77,7 @@ export function loadProject(
         ...cleanProject(project),
         source: projectSource,
         instanceId: crypto.randomUUID(),
+        importerId,
       },
       true,
     ),
@@ -292,14 +302,16 @@ export function saveAndDownloadProjectToJSON(project?: Project): void {
 export function setProjectURLParam(projectUrl: string): void {
   const url = new URL(window.location.href);
   url.searchParams.set(projectURLParam, projectUrl);
+  url.searchParams.delete(datasetURLParam);
   window.history.replaceState({}, "", url);
 }
 
 /**
- * Removes the project URL from the address bar
+ * Removes the project URL and the dataset URL from the address bar
  */
 export function clearProjectURLParam(): void {
   const url = new URL(window.location.href);
   url.searchParams.delete(projectURLParam);
+  url.searchParams.delete(datasetURLParam);
   window.history.replaceState({}, "", url);
 }

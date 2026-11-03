@@ -155,6 +155,7 @@ export {
   type ImageData,
   type ImageDataProvider,
 } from "./storage/image";
+export { type ProjectImporter } from "./storage/importer";
 export { type LabelsData, type LabelsDataProvider } from "./storage/labels";
 export {
   type PointsData,

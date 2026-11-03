@@ -210,7 +210,7 @@ export function useProjectStore<T>(selector: (state: ProjectStore) => T): T {
 
 /**
  * Creates the state of a new, empty project with a single default layer, which
- * was not loaded from a URL
+ * was neither loaded from a URL nor imported
  */
 function createInitialProjectStoreState(): ProjectStoreState {
   return {
@@ -224,6 +224,7 @@ function createInitialProjectStoreState(): ProjectStoreState {
     tables: [],
     source: null,
     instanceId: crypto.randomUUID(),
+    importerId: null,
   };
 }
 

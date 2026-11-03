@@ -144,12 +144,12 @@ and the plugin is not mounted, but it stays registered.
 
 `setup` and `mount` receive the application's four Zustand stores:
 
-| Store           | Contents                                                                                              |
-| --------------- | ----------------------------------------------------------------------------------------------------- |
-| `appStore`      | Application state: workspace, whether a project is open, interaction mode, data providers, plugins    |
-| `dataStore`     | Data references (`DataRef`) for the loaded data of each project object                                |
-| `projectStore`  | The currently loaded project (name, layers, images, labels, points, shapes, tables, maps) and its URL |
-| `settingsStore` | User settings that are persisted across sessions                                                      |
+| Store           | Contents                                                                                                              |
+| --------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `appStore`      | Application state: workspace, whether a project is open, interaction mode, data providers, project importers, plugins |
+| `dataStore`     | Data references (`DataRef`) for the loaded data of each project object                                                |
+| `projectStore`  | The currently loaded project (name, layers, images, labels, points, shapes, tables, maps) and its URL                 |
+| `settingsStore` | User settings that are persisted across sessions                                                                      |
 
 Each store is a Zustand store API. Using `appStore` as an example, a plugin can
 read the current value of `myProperty` using `appStore.getState().myProperty`,
@@ -204,6 +204,42 @@ setActivePanelId("images");
 ```
 
 The entry is expanded but not scrolled into view.
+
+## Project importers
+
+A plugin can teach TissUUmaps to open datasets that are not project files, by
+registering a project importer in its `setup`. An importer has an `id`, a
+`name`, and two methods that receive the normalized source (an absolute URL or
+a workspace-relative path) and the open workspace, if any:
+
+- `supports(normalizedSource, workspace, options)` resolves to whether the
+  importer can likely open the source. It should be cheap, e.g. read a single
+  metadata file. A rejection counts as `false`.
+- `open(normalizedSource, workspace, options)` resolves to the project that the
+  dataset describes, as a raw project (the shape of a project file).
+
+```javascript
+setup: ({ appStore }) => {
+  appStore.getState().registerProjectImporter({
+    id: "my-format",
+    name: "My format",
+    supports: async (source) => (await fetch(`${source}/my-format.json`)).ok,
+    open: async (source) => ({
+      name: "My dataset",
+      images: [{ id: "he", name: "H&E", dataSource: { type: "ome-zarr", source: `${source}/he.zarr` } }],
+    }),
+  });
+},
+```
+
+When the user opens a dataset ("Open dataset from URL…" in the welcome view,
+or the `source` GET parameter on startup), TissUUmaps asks all registered
+importers at once and opens the dataset with the first registered one that
+supports it. The project is loaded with the dataset's source as its project
+source, so relative data sources resolve against it, and the project store's
+`importerId` names the importer. A `source` GET parameter that no importer
+supports yet is retried whenever another importer is registered, so a plugin
+loaded after startup still opens it.
 
 ## User interface plugins
 

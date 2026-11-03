@@ -7,6 +7,7 @@ import type { PointsDataSource } from "../../model/points";
 import type { ShapesDataSource } from "../../model/shapes";
 import type { TableDataSource } from "../../model/table";
 import type { ImageData, ImageDataProvider } from "../../storage/image";
+import type { ProjectImporter } from "../../storage/importer";
 import type { LabelsData, LabelsDataProvider } from "../../storage/labels";
 import type { PointsData, PointsDataProvider } from "../../storage/points";
 import type { ShapesData, ShapesDataProvider } from "../../storage/shapes";
@@ -92,6 +93,12 @@ export type AppStoreState = {
     string,
     TableDataProvider<TableDataSource, TableData>
   >;
+
+  /**
+   * The registered project importers, by importer ID, in registration order
+   * (see `ProjectImporter`)
+   */
+  projectImporters: Map<string, ProjectImporter>;
 
   /**
    * The registered plugins, by plugin ID, each as its human-readable name,
@@ -305,6 +312,15 @@ export type AppStoreActions = {
     type: string,
     dataProvider: TableDataProvider<TableDataSource, TableData>,
   ) => void;
+
+  /**
+   * Registers a project importer, replacing one registered with the same ID
+   *
+   * A replaced importer keeps its place in the registration order.
+   *
+   * @param importer - The project importer to register
+   */
+  registerProjectImporter: (importer: ProjectImporter) => void;
 };
 
 /**

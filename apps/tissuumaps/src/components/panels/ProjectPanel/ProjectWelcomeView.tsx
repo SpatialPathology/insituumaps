@@ -1,4 +1,10 @@
-import { FileIcon, FilePlusIcon, FolderIcon, LinkIcon } from "lucide-react";
+import {
+  DatabaseIcon,
+  FileIcon,
+  FilePlusIcon,
+  FolderIcon,
+  LinkIcon,
+} from "lucide-react";
 
 import logoUrl from "@/assets/logo.svg";
 import { Button } from "@/components/ui/button";
@@ -15,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/app";
 
 import {
+  useOpenDatasetFromURL,
   useOpenEmptyProject,
   useOpenProjectFromFile,
   useOpenProjectFromURL,
@@ -32,7 +39,19 @@ export function ProjectWelcomeView({ className }: ProjectWelcomeViewProps) {
   const openProjectFromURL = useOpenProjectFromURL();
   const openEmptyProject = useOpenEmptyProject();
   const openWorkspace = useOpenWorkspace();
+  const openDatasetFromURL = useOpenDatasetFromURL();
+  const hasProjectImporters = useAppStore(
+    (state) => state.projectImporters.size > 0,
+  );
   const workspaceSupported = isWorkspaceSupported();
+
+  // offered only once a plugin registered a project importer
+  const openDatasetButton = hasProjectImporters && (
+    <Button variant="outline" className="w-full" onClick={openDatasetFromURL}>
+      <DatabaseIcon />
+      Open dataset from URL…
+    </Button>
+  );
 
   return (
     <Empty className={cn("flex-none justify-start px-6 py-8", className)}>
@@ -63,6 +82,7 @@ export function ProjectWelcomeView({ className }: ProjectWelcomeViewProps) {
               From URL…
             </Button>
           </div>
+          {openDatasetButton}
         </EmptyContent>
       ) : (
         <EmptyContent>
@@ -84,6 +104,7 @@ export function ProjectWelcomeView({ className }: ProjectWelcomeViewProps) {
               Open folder…
             </Button>
           </div>
+          {openDatasetButton}
           {!workspaceSupported && (
             <p className="text-muted-foreground text-xs">
               {workspaceUnsupportedMessage}
