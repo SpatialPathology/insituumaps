@@ -112,9 +112,19 @@ export class Browser {
       message.sessionId = sessionId;
     }
     return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
+      this.pending.set(id, { resolve, reject, sessionId });
       this.ws.send(JSON.stringify(message));
     });
+  }
+
+  /** Rejects the pending commands of a session, e.g. of a crashed page */
+  failSession(sessionId, error) {
+    for (const [id, pending] of this.pending) {
+      if (pending.sessionId === sessionId) {
+        this.pending.delete(id);
+        pending.reject(error);
+      }
+    }
   }
 
   on(listener) {
@@ -135,6 +145,7 @@ export class Browser {
     await page.send("Page.enable");
     await page.send("Runtime.enable");
     await page.send("Log.enable");
+    await page.send("Inspector.enable");
     await page.send("Emulation.setDeviceMetricsOverride", {
       width,
       height,
@@ -162,8 +173,16 @@ export class Page {
     this.targetId = targetId;
     this.console = [];
     this.errors = [];
+    this.crashed = false;
     browser.on((message) => {
       if (message.sessionId !== sessionId) {
+        return;
+      }
+      // a crashed page never answers: fail its commands instead of hanging
+      if (message.method === "Inspector.targetCrashed") {
+        this.crashed = true;
+        this.errors.push("The page crashed");
+        browser.failSession(sessionId, new Error("The page crashed"));
         return;
       }
       if (message.method === "Runtime.consoleAPICalled") {
@@ -196,6 +215,9 @@ export class Page {
   }
 
   send(method, params) {
+    if (this.crashed) {
+      return Promise.reject(new Error("The page crashed"));
+    }
     return this.browser.send(method, params, this.sessionId);
   }
 

@@ -3,19 +3,28 @@
  * End-to-end smoke test of the TissUUmaps plugin in headless Chromium (needs
  * WebGL 2, see smoke-test.mjs).
  *
- * Expects three servers: the TissUUmaps dev server, the fixture data server
- * and the plugin server, e.g.
+ * Expects three servers: the TissUUmaps app, the fixture data server and the
+ * plugin server, e.g.
  *
  *   pnpm --filter tissuumaps exec vite --port 5173 --strictPort
  *   pnpm --filter insituumaps dev:fixture
  *   pnpm --filter insituumaps dev:plugin
  *
+ * A production build of the app (`pnpm build`, then
+ * `pnpm --filter tissuumaps exec vite preview --port 5175` and
+ * `--app http://localhost:5175/`) is more reliable than the dev server, which
+ * reloads the page when its connection to the page breaks.
+ *
  *   node scripts/smoke-plugin.mjs [--app http://localhost:5173/] [--data http://localhost:8787/fixture/] [--plugin http://localhost:8788/insitupy-plugin.js] [--out dir]
  *
  * Opens the TissUUmaps app with `?source=` naming the fixture experiment, adds
- * the plugin as a module script (it registers itself and opens the source),
- * walks through sample, cell layer and colouring, and checks that the app's
- * project store and viewer follow. Screenshots go to --out (default:
+ * the plugin as a module script (it registers itself, and the app opens the
+ * source through the plugin's importer and shows the plugin's perspective; in
+ * an app without project importers, the plugin opens the source itself),
+ * walks through sample, cell layer, colouring, outlines, images, transcripts
+ * and overlays, and checks that the app's project store and viewer follow.
+ * Overlays are only checked if the first sample has some (the fixture has
+ * none; scripts/add_demo_annotations.py adds them). Screenshots go to --out (default:
  * test-data/smoke-plugin).
  */
 import { mkdir } from "node:fs/promises";
@@ -102,6 +111,34 @@ try {
     opened.panel === "plugin:insitupy",
     `the plugin's panel is active (${opened.panel})`,
   );
+  // tab titles of the panel layout, for the perspective checks
+  const tabs = () =>
+    page.evaluate(
+      `[...document.querySelectorAll(".dv-tab")].map((tab) => tab.textContent.trim()).filter(Boolean)`,
+    );
+  const importsDatasets = await state(
+    "typeof app.registerProjectImporter === 'function'",
+  );
+  if (importsDatasets) {
+    const perspective = await state(
+      "{ active: app.activePerspectiveId, importer: project.importerId }",
+    );
+    check(
+      perspective.importer === "insitupy",
+      `the app opened ?source= through the plugin's importer (${perspective.importer})`,
+    );
+    check(
+      perspective.active === "insitupy",
+      `the InSituPy perspective is active (${perspective.active})`,
+    );
+    const perspectiveTabs = await tabs();
+    check(
+      !["Images", "Labels", "Points", "Shapes", "Tables"].some((title) =>
+        perspectiveTabs.includes(title),
+      ),
+      `the generic data panels are hidden (${perspectiveTabs})`,
+    );
+  }
   await page.screenshot(`${outDir}/01-samples.png`);
 
   console.log("2. pick a sample");
@@ -215,26 +252,204 @@ try {
       `still drawn (${JSON.stringify(stats)})`,
     );
     await page.screenshot(`${outDir}/05-layer.png`);
+    // back to the main layer, so that the headless renderer holds the data of
+    // one cell layer only in the following steps
+    await call(`s.selectCellLayer(${JSON.stringify(layers[0])})`);
+    await settled();
   } else {
     console.log("  skip (single cell layer)");
   }
 
+  // scrolls a section of the plugin's panel into view, for the screenshots;
+  // only the panel's own scroll container scrolls (scrollIntoView would also
+  // scroll the app's layout)
+  const showSection = async (title) => {
+    await page.evaluate(`(() => {
+      const heading = [...document.querySelectorAll(".insitupy-plugin *")].find(
+        (e) => e.children.length === 0 && e.textContent.trim() === ${JSON.stringify(title)},
+      );
+      let container = heading?.parentElement;
+      while (container && getComputedStyle(container).overflowY !== "auto") {
+        container = container.parentElement;
+      }
+      if (heading && container) {
+        container.scrollTop += heading.getBoundingClientRect().top - container.getBoundingClientRect().top - 8;
+      }
+      return true;
+    })()`);
+    await sleep(300);
+  };
+  // the data of an object of the app's project, as the app's caches hold it,
+  // once it is no longer loading (the viewer may only start loading it after
+  // `settled` has returned)
+  const dataStatus = async (kind, id) => {
+    const status = () =>
+      state(
+        `(() => { const ref = p.stores.dataStore.getState()["${kind}DataRefs"].get(${JSON.stringify(id)}); return ref ? ref.status + (ref.error ? ": " + String(ref.error) : "") : "none"; })()`,
+      );
+    for (let waited = 0; waited < 60000; waited += 500) {
+      const current = await status();
+      if (current !== "loading" && current !== "none") {
+        return current;
+      }
+      await sleep(500);
+    }
+    return await status();
+  };
+
+  console.log("5b. outlines on nuclei");
+  await call(`s.setOutlines("nuclei")`);
+  await settled();
+  const outlines = await state(
+    "project.labels.filter(l => l.id.startsWith('mask-outlines:')).map(l => ({ id: l.id, mode: l.labelRenderMode }))",
+  );
+  check(
+    outlines.length === 1 &&
+      outlines[0].id === "mask-outlines:nuclei" &&
+      outlines[0].mode === "outline",
+    `nucleus outlines in the app's project (${JSON.stringify(outlines)})`,
+  );
+  const nucleusOutlines = await dataStatus("labels", "mask-outlines:nuclei");
+  check(
+    nucleusOutlines === "loaded",
+    `nucleus outlines loaded (${nucleusOutlines})`,
+  );
+  await showSection("Outlines");
+  await page.screenshot(`${outDir}/05b-nuclei-outlines.png`);
+
+  console.log("5c. images");
+  const imageNames = await state("s.project.images.map(i => i.name)");
+  const grayscale = await state(
+    "s.project.images.filter(i => !i.rgb).map(i => i.name)[0]",
+  );
+  if (grayscale !== undefined) {
+    await call(`s.setImage(${JSON.stringify(grayscale)}, { visible: true })`);
+    await call(
+      `s.setImage(${JSON.stringify(imageNames[0])}, { opacity: 0.4 })`,
+    );
+    await settled();
+    const images = await state(
+      "project.images.map(i => ({ id: i.id, visible: i.visibility, opacity: i.opacity, type: i.dataSource.type }))",
+    );
+    const gray = images.find((i) => i.id === `image:${grayscale}`);
+    check(
+      gray?.visible === true && gray.type === "insituumaps-grayscale",
+      `the grayscale image is shown through the plugin's provider (${JSON.stringify(gray)})`,
+    );
+    check(
+      images.find((i) => i.id === `image:${imageNames[0]}`)?.opacity === 0.4,
+      "the first image's opacity reaches the app",
+    );
+    const grayStatus = await dataStatus("image", `image:${grayscale}`);
+    check(grayStatus === "loaded", `grayscale image loaded (${grayStatus})`);
+    await showSection("Images");
+    await page.screenshot(`${outDir}/05c-images.png`);
+    await call(`s.setImage(${JSON.stringify(grayscale)}, { visible: false })`);
+    await call(`s.setImage(${JSON.stringify(imageNames[0])}, { opacity: 1 })`);
+  } else {
+    console.log("  skip (no grayscale image)");
+  }
+
+  console.log("5d. transcripts of two genes");
+  await call(`s.addTranscriptGene("EPCAM")`);
+  await call(`s.addTranscriptGene("CD3E")`);
+  await settled();
+  const points = await state(
+    "{ ids: project.points.map(x => x.id), region: s.transcriptRegion, info: s.transcriptInfo }",
+  );
+  check(
+    points.ids.includes("transcripts:EPCAM") &&
+      points.ids.includes("transcripts:CD3E"),
+    `one points object per gene in the app's project (${points.ids})`,
+  );
+  check(
+    points.region !== null && points.region.width >= 1000,
+    `transcripts are loaded for the whole sample (${JSON.stringify(points.region)})`,
+  );
+  check(
+    points.info.EPCAM?.loaded > 1000,
+    `EPCAM transcripts loaded (${points.info.EPCAM?.loaded})`,
+  );
+  const epcamStatus = await dataStatus("points", "transcripts:EPCAM");
+  check(epcamStatus === "loaded", `EPCAM points loaded (${epcamStatus})`);
+  await showSection("Transcripts");
+  await page.screenshot(`${outDir}/05d-transcripts.png`);
+
+  console.log("5e. annotations and regions");
+  const overlayKeys = await state(
+    "[...s.project.annotations, ...s.project.regions].map(e => e.kind + ':' + e.key)",
+  );
+  if (overlayKeys.length > 0) {
+    for (const key of overlayKeys) {
+      await call(`s.toggleOverlay(${JSON.stringify(key)})`);
+    }
+    await settled();
+    const shapes = await state("project.shapes.map(x => x.id)");
+    check(
+      overlayKeys.every((key) => shapes.includes(`overlay:${key}`)),
+      `overlays in the app's project (${shapes})`,
+    );
+    const shapesStatus = await dataStatus(
+      "shapes",
+      `overlay:${overlayKeys[0]}`,
+    );
+    check(shapesStatus === "loaded", `overlay loaded (${shapesStatus})`);
+    await showSection("Annotations and regions");
+    await page.screenshot(`${outDir}/05e-overlays.png`);
+  } else {
+    console.log(
+      "  skip (no annotations; run scripts/add_demo_annotations.py on data-000)",
+    );
+  }
+  const sections = await page.evaluate(`document.body.innerText`);
+  check(
+    ["OUTLINES", "IMAGES", "TRANSCRIPTS"].every((title) =>
+      sections.toUpperCase().includes(title),
+    ),
+    "the panel shows the Outlines, Images and Transcripts sections",
+  );
+
   console.log("6. the generic panels show the plugin's objects");
+  if (importsDatasets) {
+    // as the perspective menu's "Generic" does
+    await call(`app.setActivePerspectiveId(null)`);
+    await call(`window.tissuumaps.unmountPlugin("insitupy")`);
+    await sleep(500);
+    const genericTabs = await tabs();
+    check(
+      ["Images", "Labels", "Points", "Shapes", "Tables"].every((title) =>
+        genericTabs.includes(title),
+      ),
+      `the generic perspective shows the data panels again (${genericTabs})`,
+    );
+  }
   await call(`app.setActivePanelId("labels")`);
   await sleep(500);
   const labelsPanel = await page.evaluate(`document.body.innerText`);
   check(
-    labelsPanel.includes("Cell outlines"),
+    /(Cell|Nucleus) outlines/.test(labelsPanel),
     "the Labels panel lists the outlines",
   );
   await page.screenshot(`${outDir}/06-labels-panel.png`);
-  await call(`app.setActivePanelId("plugin:insitupy")`);
+  if (importsDatasets) {
+    // as choosing InSituPy in the perspective menu does
+    await call(`app.setActivePerspectiveId("insitupy")`);
+    await call(`window.tissuumaps.mountPlugin("insitupy")`);
+    await sleep(1000);
+    const panelText = await page.evaluate(`document.body.innerText`);
+    check(
+      panelText.includes("leiden"),
+      "back in the perspective, the sidebar shows the same colouring",
+    );
+  } else {
+    await call(`app.setActivePanelId("plugin:insitupy")`);
+  }
 
   console.log("7. another sample replaces the project");
   await call(`s.selectSample(1)`);
   await settled();
   const second = await state(
-    "{ instance: project.instanceId, name: project.name, colorBy: s.selection.colorBy, image: project.images[0] && project.images[0].dataSource.source }",
+    "{ instance: project.instanceId, name: project.name, colorBy: s.selection.colorBy, image: project.images[0] && project.images[0].dataSource.source, points: project.points.map(x => x.id) }",
   );
   check(
     second.instance !== first.instance,
@@ -248,6 +463,15 @@ try {
     second.colorBy.kind === "obs",
     `the colouring is kept (${JSON.stringify(second.colorBy)})`,
   );
+  check(
+    second.points.includes("transcripts:EPCAM"),
+    `the transcript genes are kept (${second.points})`,
+  );
+  const secondPoints = await dataStatus("points", "transcripts:EPCAM");
+  check(
+    secondPoints === "loaded",
+    `the second sample's transcripts loaded (${secondPoints})`,
+  );
   const secondStats = await viewerStats();
   check(
     secondStats !== null && secondStats.nonBackgroundFraction > 0.5,
@@ -255,18 +479,38 @@ try {
   );
   await page.screenshot(`${outDir}/07-sample2.png`);
 
+  // Clearing the project while the viewer still recolours tiles makes the
+  // app log "Failed to transfer tile data: Data has been destroyed": tiles of
+  // removed images are still recoloured after the data cache destroyed their
+  // data. This is the app's own cleanup race, not the plugin's, so the test
+  // lets the recolouring finish first.
+  await sleep(8000);
+
   console.log("8. a project opened in the app closes the plugin's source");
   await call(`p.stores.projectStore.getState().clear()`);
   await sleep(500);
-  const closed = await state("{ source: s.source, panel: app.activePanelId }");
+  const closed = await state(
+    "{ source: s.source, panel: app.activePanelId, perspective: app.activePerspectiveId }",
+  );
   check(closed.source === null, "the plugin shows its start screen again");
+  if (importsDatasets) {
+    check(
+      closed.perspective === null,
+      `the generic perspective for a project without importer (${closed.perspective})`,
+    );
+  }
   await page.screenshot(`${outDir}/08-closed.png`);
 
+  // "Failed to transfer tile data: Data has been destroyed" is the app's own
+  // race: tiles of an image or labels object whose data source changed are
+  // still recoloured after the data cache destroyed the old data (see
+  // docs/perspective-prototype-spec.md, section 12)
   const errors = page.errors.filter(
     (e) =>
       !e.includes("404") &&
       !e.includes("GL Driver") &&
-      !e.includes("project.tm4"),
+      !e.includes("project.tm4") &&
+      !e.includes("Failed to transfer tile data"),
   );
   check(errors.length === 0, `no console errors (${errors.length})`);
   for (const error of errors) {
