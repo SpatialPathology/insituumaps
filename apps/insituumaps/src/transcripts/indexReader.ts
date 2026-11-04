@@ -2,6 +2,7 @@
  * Reads gene points for a view from the transcript index with range requests
  */
 import type { InSituSource } from "@/insitupy";
+import { raceSignal } from "@/lib/utils";
 
 import {
   type RegionUm,
@@ -29,6 +30,10 @@ type TileEntry = { tile: number; offset: number; count: number };
 /**
  * Reads the index of one project; caches the per-gene tile tables and the
  * tile points it has fetched (bounded by `cacheBytes`)
+ *
+ * A tile table is read once for all callers, without their abort signals
+ * (decision D15). Tile points are cached only once read, so each caller reads
+ * them with its own signal.
  */
 export class TranscriptIndexReader {
   readonly index: TranscriptIndex;
@@ -110,7 +115,7 @@ export class TranscriptIndexReader {
         subsampled: false,
       };
     }
-    const tiles = await this._loadTileTable(entry, { signal });
+    const tiles = await raceSignal(this._loadTileTable(entry), signal);
     const [nx] = this.index.grid;
     const visible: TileEntry[] = [];
     let total = 0;
@@ -150,15 +155,17 @@ export class TranscriptIndexReader {
     return { xs, ys, total, subsampled: fraction < 1 };
   }
 
-  private _loadTileTable(
-    entry: TranscriptIndexGene,
-    options?: { signal?: AbortSignal },
-  ): Promise<TileEntry[]> {
+  /**
+   * Loads the tile table of a gene, once for all callers
+   *
+   * The read is shared, so it runs without any caller's signal; callers race
+   * their own (decision D15).
+   */
+  private _loadTileTable(entry: TranscriptIndexGene): Promise<TileEntry[]> {
     let promise = this._tileTables.get(entry.name);
     if (promise === undefined) {
       promise = this._source
         .readBytes(this.index.tiles_file, {
-          signal: options?.signal,
           range: [
             entry.tiles_offset * tileEntryBytes,
             (entry.tiles_offset + entry.tiles_count) * tileEntryBytes,

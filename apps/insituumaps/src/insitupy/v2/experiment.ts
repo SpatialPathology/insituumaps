@@ -5,6 +5,8 @@
 import { parquetReadObjects } from "hyparquet";
 import { compressors } from "hyparquet-compressors";
 
+import { raceSignal } from "@/lib/utils";
+
 import { type InSituSource, NotFoundError } from "../source";
 import type {
   DataIssue,
@@ -113,22 +115,6 @@ export class InSituExperimentV2 implements InSituExperiment {
     this._sampleInfo.catch(() => (this._sampleInfo = undefined));
     return raceSignal(this._sampleInfo, options?.signal);
   }
-}
-
-function raceSignal<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
-  if (signal === undefined) {
-    return promise;
-  }
-  if (signal.aborted) {
-    return Promise.reject(signal.reason as Error);
-  }
-  return new Promise<T>((resolve, reject) => {
-    const onAbort = () => reject(signal.reason as Error);
-    signal.addEventListener("abort", onAbort, { once: true });
-    promise.then(resolve, reject).finally(() => {
-      signal.removeEventListener("abort", onAbort);
-    });
-  });
 }
 
 /**

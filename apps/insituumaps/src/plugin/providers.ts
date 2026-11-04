@@ -31,31 +31,6 @@ import {
 import { virtualTableDataSourceType } from "@/viewer/loaders";
 
 /**
- * Waits for a promise unless a signal is aborted first
- *
- * @param promise - The promise to wait for, which keeps running when aborted
- * @param signal - The signal that ends the wait, if any
- * @returns The promise's value
- * @throws The signal's reason once it is aborted, or the promise's rejection
- */
-function raceAbortSignal<T>(
-  promise: Promise<T>,
-  signal: AbortSignal | undefined,
-): Promise<T> {
-  if (signal === undefined) {
-    return promise;
-  }
-  signal.throwIfAborted();
-  return new Promise<T>((resolve, reject) => {
-    const onAbort = () => reject(signal.reason as Error);
-    signal.addEventListener("abort", onAbort, { once: true });
-    promise.then(resolve, reject).finally(() => {
-      signal.removeEventListener("abort", onAbort);
-    });
-  });
-}
-
-/**
  * Serves the transcripts of the open sample, through a provider for its
  * transcript source
  */
@@ -96,18 +71,7 @@ class CurrentTranscriptsProvider implements PointsDataProvider<
           transcriptInfo: { ...state.transcriptInfo, [info.gene]: info },
         })),
     );
-    // The transcript index reader shares its reads between callers and keeps
-    // the first caller's abort signal in them, so an aborted load would fail
-    // every later load of the gene. As the standalone app's loaders do, the
-    // load runs without the app's signal, which only ends the wait for it
-    // (decision D15).
-    const { signal, ...loadOptions } = options ?? {
-      tableDataPromise: undefined,
-    };
-    return await raceAbortSignal(
-      provider.load(dataSource, loadOptions),
-      signal,
-    );
+    return await provider.load(dataSource, options);
   }
 }
 

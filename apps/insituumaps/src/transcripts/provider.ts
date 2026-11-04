@@ -12,6 +12,7 @@ import type {
 } from "@tissuumaps/core";
 
 import type { InSituProject } from "@/insitupy";
+import { raceSignal } from "@/lib/utils";
 
 import type { RegionUm } from "./indexFormat";
 import { type GenePoints, TranscriptIndexReader } from "./indexReader";
@@ -102,9 +103,10 @@ export class TranscriptSource {
     if (index === null || index === undefined) {
       return Promise.reject(new Error("The project has no transcript index."));
     }
-    this._reader ??= TranscriptIndexReader.open(index.source, options);
+    // shared, so opened without the caller's signal (decision D15)
+    this._reader ??= TranscriptIndexReader.open(index.source);
     this._reader.catch(() => (this._reader = undefined));
-    return this._reader;
+    return raceSignal(this._reader, options?.signal);
   }
 
   /** The Parquet fallback (only without an index) */

@@ -34,3 +34,34 @@ export function formatNumber(value: number): string {
   }
   return value.toPrecision(2);
 }
+
+/**
+ * Waits for a shared promise on behalf of one caller (decision D15)
+ *
+ * Reads shared between callers run without any caller's signal, since an
+ * aborted signal would fail them for every caller. Each caller instead races
+ * its own signal against the shared promise, which only ends its own wait.
+ *
+ * @param promise - The shared promise, which keeps running when aborted
+ * @param signal - The caller's signal, if any
+ * @returns The promise's value
+ * @throws The signal's reason once it is aborted, or the promise's rejection
+ */
+export function raceSignal<T>(
+  promise: Promise<T>,
+  signal?: AbortSignal,
+): Promise<T> {
+  if (signal === undefined) {
+    return promise;
+  }
+  if (signal.aborted) {
+    return Promise.reject(signal.reason as Error);
+  }
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason as Error);
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(resolve, reject).finally(() => {
+      signal.removeEventListener("abort", onAbort);
+    });
+  });
+}

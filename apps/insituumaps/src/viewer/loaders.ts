@@ -33,6 +33,8 @@ import {
   zarrTableDataSourceType,
 } from "@tissuumaps/storage";
 
+import { raceSignal } from "@/lib/utils";
+
 import {
   GrayscaleImageDataProvider,
   grayscaleImageDataSourceType,
@@ -314,20 +316,4 @@ export class ViewerDataLoaders {
 
 function virtualTableKey(id: string): string {
   return `virtual:${id}`;
-}
-
-function raceSignal<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
-  if (signal === undefined) {
-    return promise;
-  }
-  if (signal.aborted) {
-    return Promise.reject(signal.reason as Error);
-  }
-  return new Promise<T>((resolve, reject) => {
-    const onAbort = () => reject(signal.reason as Error);
-    signal.addEventListener("abort", onAbort, { once: true });
-    promise.then(resolve, reject).finally(() => {
-      signal.removeEventListener("abort", onAbort);
-    });
-  });
 }

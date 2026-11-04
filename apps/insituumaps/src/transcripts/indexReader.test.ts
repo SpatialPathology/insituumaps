@@ -69,16 +69,17 @@ function makeSource(): InSituSource {
       p === "index.json"
         ? Promise.resolve(index as T)
         : Promise.reject(new NotFoundError(p)),
-    readBytes: (p, options) => {
+    // answers in a later task and honours the signal, like fetch
+    readBytes: async (p, options) => {
       const file = files.get(p);
       if (file === undefined) {
-        return Promise.reject(new NotFoundError(p));
+        throw new NotFoundError(p);
       }
       requests.push(`${p}:${options?.range?.join("-") ?? "all"}`);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      options?.signal?.throwIfAborted();
       const range = options?.range;
-      return Promise.resolve(
-        range !== undefined ? file.slice(range[0], range[1]) : file,
-      );
+      return range !== undefined ? file.slice(range[0], range[1]) : file;
     },
     exists: (p) => Promise.resolve(files.has(p) || p === "index.json"),
     list: () => Promise.resolve(null),
@@ -126,6 +127,24 @@ describe("TranscriptIndexReader", () => {
     expect(sampled.total).toBe(5);
     // the same fraction of every tile, rounded up: 2 of 3 and 1 of 2
     expect(sampled.xs.length).toBe(3);
+  });
+
+  it("does not fail other callers of a shared read when one caller aborts", async () => {
+    const reader = await TranscriptIndexReader.open(makeSource());
+    const region = { x: 0, y: 0, width: 5, height: 5 };
+    const abortController = new AbortController();
+    const aborted = reader.loadGenePoints("A", region, {
+      signal: abortController.signal,
+    });
+    // started while the first caller's read of the tile table is in flight
+    const other = reader.loadGenePoints("A", region);
+    abortController.abort();
+    await expect(aborted).rejects.toThrow();
+    expect(Array.from((await other).xs)).toEqual([1, 2, 3]);
+    // and the read is not failed for later callers either
+    expect(Array.from((await reader.loadGenePoints("A", region)).xs)).toEqual([
+      1, 2, 3,
+    ]);
   });
 
   it("returns nothing for unknown genes or regions off the grid", async () => {

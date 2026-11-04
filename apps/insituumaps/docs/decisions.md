@@ -116,7 +116,11 @@ the driver is 200 lines. Playwright can replace it later without touching the te
 Decision: `InSituExperiment.openSample` and `InSituProject.openCellLayer` run the read once
 without a signal and race each caller's signal against the shared promise. Reasoning: a
 double click aborted the first caller's signal and poisoned the cached promise for the
-second ("signal is aborted without reason"), found by the smoke test.
+second ("signal is aborted without reason"), found by the smoke test. The transcript index
+reader's per-gene tile tables and `TranscriptSource.openIndex` follow the same rule (2026-11-04):
+the TissUUmaps app's data cache, unlike this app's loaders, passes its abort signal to the
+transcript provider, and one abandoned load failed every later load of the gene. All of them use
+`raceSignal` from `src/lib/utils.ts`.
 
 ## D16. The app build follows the `apps/tissuumaps` convention
 
