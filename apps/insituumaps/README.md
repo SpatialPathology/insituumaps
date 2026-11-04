@@ -138,13 +138,15 @@ confirm. `pnpm --filter insituumaps build:plugin` writes `dist-plugin/` once ins
 1. Open <http://localhost:5173/> and load the plugin. An "InSituPy" tab opens with the start
    screen.
 2. Enter `http://localhost:8787/fixture/` and click "Open"; the sample table covers the window.
-   Open `data-000`.
+   Open `data-000`. The app switches to the InSituPy perspective, as in Test B: only the Project
+   and InSituPy tabs remain.
 3. Check: the H&E image with cell outlines; colour by Gene (`counts`, EPCAM) with a legend and
    editable Min/Max; colour by Cell property (`leiden`) with per-category boxes and counts;
    the `main-copy` cell layer; outlines on Nuclei; the `nuclei` image in grayscale; transcripts
    of EPCAM and CD3E as coloured points; annotations and regions (with the demo annotations);
-   the Labels, Points and Tables tabs listing the plugin's objects; switching to `data-001` from
-   the sample browser (grid button in the panel header), which fits the view to the new sample.
+   after "Generic" in the Perspective menu, the Labels, Points and Tables tabs listing the
+   plugin's objects; switching to `data-001` from the sample browser (grid button in the panel
+   header), which fits the view to the new sample.
 
 #### Test B: importer and perspective
 
