@@ -97,19 +97,99 @@ Add `?source=<folder url>` to its URL, or host a redirect that fills it in.
 ### TissUUmaps plugin (prototype)
 
 The same sources also build as a TissUUmaps plugin, which shows the sidebar in a panel of the
-TissUUmaps app and lets the app's viewer draw the sample (see
-`docs/perspective-prototype-spec.md` at the repository root):
+TissUUmaps app and lets the app's viewer draw the sample. With the project importer and
+perspective hooks of this branch, the app opens InSituPy datasets itself and swaps its generic
+panels for the InSituPy panel. Design and status: `docs/perspective-prototype.md` and
+`docs/perspective-prototype-spec.md` at the repository root.
+
+#### Setup
+
+Requirements: Node 24 or newer (check `node -v`), pnpm through Corepack, Python with
+`numpy zarr h5py scipy pyarrow anndata` (see the Python lookup above), and Chrome or Edge,
+which are needed to open a folder on your computer.
+
+```bash
+pnpm install
+pnpm build:packages                      # the plugin resolves the packages to their build output
+pnpm --filter insituumaps fixture        # the 2-sample fixture
+```
+
+Optional: demo annotations and regions on the first sample (test data only, decision D17), so
+that "Annotations and regions" has something to show:
+
+```bash
+python3 scripts/add_demo_annotations.py test-data/fixture/data-000
+```
+
+Then start three servers, each in its own terminal:
 
 ```bash
 pnpm --filter tissuumaps exec vite --port 5173 --strictPort  # the TissUUmaps app
-pnpm --filter insituumaps dev:fixture                        # the fixture data (and this app)
-pnpm --filter insituumaps dev:plugin                         # rebuilds and serves the plugin
+pnpm --filter insituumaps dev:fixture                        # fixture data (8787), this app (5174)
+pnpm --filter insituumaps dev:plugin                         # rebuilds and serves the plugin (8788)
 ```
 
-In the TissUUmaps app, open the plugins menu (the dots in the tab bar), choose "Load plugin
-from URL…" and enter `http://localhost:8788/insitupy-plugin.js`. Opening the app as
-`http://localhost:5173/?source=http://localhost:8787/fixture/` first makes the plugin open the
-fixture right away. `pnpm --filter insituumaps build:plugin` writes `dist-plugin/` once.
+The plugin is loaded in the TissUUmaps app from the plugins menu (the three dots at the right
+of the tab bar): "Load plugin from URL…", `http://localhost:8788/insitupy-plugin.js`, and
+confirm. `pnpm --filter insituumaps build:plugin` writes `dist-plugin/` once instead.
+
+#### Test A: the plugin's start screen
+
+1. Open <http://localhost:5173/> and load the plugin. An "InSituPy" tab opens with the start
+   screen.
+2. Enter `http://localhost:8787/fixture/` and click "Open"; the sample table covers the window.
+   Open `data-000`.
+3. Check: the H&E image with cell outlines; colour by Gene (`counts`, EPCAM) with a legend and
+   editable Min/Max; colour by Cell property (`leiden`) with per-category boxes and counts;
+   the `main-copy` cell layer; outlines on Nuclei; the `nuclei` image in grayscale; transcripts
+   of EPCAM and CD3E as coloured points; annotations and regions (with the demo annotations);
+   the Labels, Points and Tables tabs listing the plugin's objects; switching to `data-001` from
+   the sample browser (grid button in the panel header), which fits the view to the new sample.
+
+#### Test B: importer and perspective
+
+1. Open <http://localhost:5173/?source=http://localhost:8787/fixture/data-000/> in a fresh tab.
+   The welcome view stays: no importer is loaded yet.
+2. Load the plugin.
+3. Check: the sample opens by itself; only the Project and InSituPy tabs remain; a Perspective
+   button (panel icon) appears left of the plugins menu. "Generic" there brings back the Images,
+   Labels, Points, Shapes and Tables tabs, which show the plugin's objects; "InSituPy" returns
+   with the same selection. Closing the InSituPy tab also switches to Generic, and
+   `&perspective=nothing` in the URL opens the generic panels without an error.
+
+#### Test C: "Open dataset from URL…"
+
+1. Open <http://localhost:5173/>, load the plugin and click the Project tab. The welcome view
+   now offers "Open dataset from URL…" (only once an importer is registered).
+2. Enter `http://localhost:8787/fixture/`: the sample table opens in the InSituPy perspective.
+3. Enter `http://localhost:8787/nothing/`: a "Dataset not recognized" dialog appears.
+
+#### Test D: your own dataset
+
+Run the converter on the dataset first (see "Prepare your own data" below; it adds files in
+place, so use a copy if in doubt). Then either:
+
+- **a folder on your computer** (not tested yet): load the plugin and click "Open a folder on
+  this computer" on its start screen. Check that the sample appears, that the Project tab's
+  footer shows the folder as connected, and that images, masks and transcripts load; or
+- **over HTTP**, which also uses the importer: serve the folder that contains the dataset on a
+  free port, e.g. `pnpm --filter insituumaps serve:data <parent-folder> --port 8789` (an
+  absolute path, as the script runs in `apps/insituumaps`). Then open
+  `http://localhost:5173/?source=http://localhost:8789/<dataset-folder>/` and load the plugin.
+
+On a full slide, watch the loading time of transcripts: the plugin loads each gene for the
+whole sample, and a gene with more than 2 million points is thinned evenly over the slide.
+
+#### What is normal
+
+- 404 errors in the console: Zarr probes for optional files, and `project.tm4` is looked for
+  when `?source=` is given.
+- The plugin is forgotten on reload; load it again. After a rebuild, reload the page or add
+  `?v=2` to the plugin URL, since the browser caches modules.
+- No scale bar and no click-to-inspect in the plugin: both need viewer hooks that plugins do not
+  have yet. The plugin panel stays light in dark mode.
+- "Failed to transfer tile data: Data has been destroyed" after quick sample or layer switches:
+  the app's own cleanup race, harmless (see section 13 of the spec).
 
 ### Test
 
@@ -118,7 +198,7 @@ pnpm --filter insituumaps test           # vitest: data layer, transcript index,
 pnpm --filter insituumaps test:converter # python unittest of the converter on synthetic data
 pnpm --filter insituumaps smoke          # headless Chromium end-to-end run on the fixture
 pnpm --filter insituumaps smoke:local    # the same through the local-folder code path
-pnpm --filter insituumaps smoke:plugin   # the plugin in the TissUUmaps app (needs dev:plugin too)
+pnpm --filter insituumaps smoke:plugin   # the plugin in the TissUUmaps app, see below
 pnpm typecheck && pnpm lint             # whole monorepo
 ```
 
@@ -127,6 +207,18 @@ WebGL 2; they use `INSITUUMAPS_CHROME` if set, else the Playwright Chromium or a
 Chrome (Linux, macOS, Windows; Edge on Windows as a last resort). Screenshots land in
 `test-data/smoke/`. `smoke:local` copies one sample into the browser's private file system
 and opens it as a directory, which exercises the same code as a folder picked by the user.
+
+`smoke:plugin` also needs `dev:plugin`, and is reliable only against a production build of the
+TissUUmaps app: the dev server can reload the page during the run. With `dev:fixture` and
+`dev:plugin` running:
+
+```bash
+pnpm build
+pnpm --filter tissuumaps exec vite preview --port 5175 --strictPort
+pnpm --filter insituumaps smoke:plugin -- --app http://localhost:5175/
+```
+
+Its screenshots land in `test-data/smoke-plugin/`.
 
 ### Prepare your own data
 
