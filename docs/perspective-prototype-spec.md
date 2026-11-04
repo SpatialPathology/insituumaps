@@ -312,3 +312,32 @@ Step 2:
 21. **Double write (2.3, risk 10).** Opening through the importer writes the project twice: once by the bridge while the fork store opens it, once by the app with the importer's result. The bridge adopts the second instance (same `importerId`, a source is open), so the plugin keeps its state; the view is fitted twice.
 22. **Checks (step 2).** In a fresh page with `?source=` naming the fixture, loading the plugin from the plugins menu opens the sample by itself, with the generic data tabs hidden and the InSituPy tab active; "Generic" in the perspective menu shows them again and lists the plugin's objects; switching back shows the same selection; "Open dataset from URL…" opens the experiment's sample browser, and an unknown URL gives an alert; `?perspective=` naming no plugin falls back to generic. `smoke:plugin` checks the perspective and the switch too. `dataset.test.ts` covers the choice of importer and `plugins.test.ts` the perspective bookkeeping of the registry.
 23. **Transcript loads aborted for good (found in step 2 testing).** The fork's transcript index reader caches each gene's tile table as a promise made with the first caller's abort signal. The standalone app never passes signals to providers, but the app's data cache does: once it abandoned a transcript load, every later load of that gene failed with an `AbortError` that the cache keeps. Fixed in the reader: the tile table of a gene, and in `TranscriptSource.openIndex` the reader itself, are now read once without any caller's signal, and each caller races its own (decision D15, `raceSignal` in `src/lib/utils.ts`). The plugin's interim workaround in its transcript provider is gone.
+
+## 13. Follow-ups
+
+Open work after step 2, in the suggested order. Items 1 and 2 need the full dataset and are done locally.
+
+1. **Before the demo.**
+   - Open a full dataset from a local folder through the plugin's start screen. This path is untested; the plugin hands the folder to the app as its workspace (`bridge.ts`).
+   - Check transcript loading on the full slide: the plugin loads each gene for the whole sample (C5), so pick demo genes whose loading time is acceptable.
+   - Choose the start of the demo: `?source=` and then "Load plugin from URL…" (shows the importer and the perspective), or the plugin's start screen (needed for a local folder).
+2. **Record the demo (step 3).** Show the dataset opening by itself in the InSituPy perspective, the sidebar workflow (sample, cell layer, colouring, outlines, transcripts), and the switch to "Generic", where the same objects appear in the Labels and Points panels.
+3. **Fork.** Open a PR from `feat/insitupy-perspective-prototype` into the fork's `main`, if the prototype should live there.
+4. **Upstream (`jwrth/TissUUmaps`).**
+   - Merge `upstream/main` into the fork first (it is 3 commits behind, risk 1), or accept docs conflicts when cherry-picking.
+   - The prerequisites as separate PRs: outline render mode and per-image tile caches (design doc, PR 0).
+   - Cherry-pick the two generic commits onto branches from `upstream/main`, one PR each: `a7fd732` (project importers) and `bf73e8e` (perspectives). Remove the AI co-author trailers and declare AI use in the PR template (`docs/development/ai-policy.md`).
+   - Post the issue (design doc, section 11) with the demo: importers first, perspectives as the follow-up.
+5. **Small upstream issues found while testing.**
+   - The tile race of note 13 ("Failed to transfer tile data: Data has been destroyed" when a project is cleared or replaced during recolouring). Reproduce it with a plain `.tm4` project before filing it.
+   - Optional: the Vite dev server reloads the page when a forwarded console message exceeds its WebSocket payload limit (note 15). A development-only annoyance.
+6. **Upstream #380 "Multi-resolution point clouds" (open).** The fork's transcript index (`apps/insituumaps`, decisions D5, D8 and D9) is a working example of view-dependent, level-of-detail point loading: per-gene tiles, points shuffled within each tile, and a cap of 2 million points per gene and view, filled with the same fraction of every tile, so that any prefix is a spatially fair sample. Offer it as input to the format discussion, e.g. as a comment on #380 with the demo. Limits to state there:
+   - its own binary format (`points.bin`, `tiles.bin`, `index.json`), not an OME-NGFF or SpatialData format, which #380 wants agreed first;
+   - transcript-specific, and only in the fork app, not in `@tissuumaps/core`, `render` or `storage`;
+   - one sampling fraction per view rather than stored resolution levels;
+   - no chunked upload or rendering of the loaded points (#338, #339);
+   - in the TissUUmaps plugin it is only a cap, not per-view loading, because plugins cannot read the viewport. A viewport hook for plugins (item 7) is the shared prerequisite.
+7. **Later, with the maintainers (out of scope for the prototype).**
+   - Viewer hooks for plugins: the visible region (per-view transcript loading), viewer click events (click-to-inspect) and plugin viewer controls (scale bar, legend in the viewer).
+   - Quick settings (#390) and declarative sections, so that plugins reuse app widgets instead of copies.
+   - A per-importer perspective preference in the settings store, and a choice when several perspectives apply.
