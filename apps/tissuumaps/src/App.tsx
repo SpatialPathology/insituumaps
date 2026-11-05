@@ -14,13 +14,13 @@ import { IconButton } from "@/components/common/icon-button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useActivePanelSync } from "@/hooks/useActivePanelSync";
 import { useFileDragTracking } from "@/hooks/useFileDrag";
-import { usePerspectivePanels } from "@/hooks/usePerspectivePanels";
+import { useLensPanels } from "@/hooks/useLensPanels";
 import { usePluginPanels } from "@/hooks/usePluginPanels";
 
 import "./App.css";
+import { LensMenu } from "./components/app/LensMenu";
 import { NotificationCenter } from "./components/app/NotificationCenter";
 import { PanelDropTarget } from "./components/app/PanelDropTarget";
-import { PerspectiveMenu } from "./components/app/PerspectiveMenu";
 import { PluginMenu } from "./components/app/PluginMenu";
 import { DialogProvider } from "./components/dialogs/DialogProvider";
 import { ImagesPanel } from "./components/panels/ImagesPanel";
@@ -141,7 +141,7 @@ const dockviewTabComponents = {
 };
 
 /**
- * The perspective menu, the plugins menu and the dark mode toggle shown at the
+ * The lens menu, the plugins menu and the dark mode toggle shown at the
  * right end of the dockview tab bar
  */
 function DockviewRightHeaderActionsComponent() {
@@ -149,7 +149,7 @@ function DockviewRightHeaderActionsComponent() {
   const setDark = useSettingsStore((state) => state.setDark);
   return (
     <div className="flex">
-      <PerspectiveMenu />
+      <LensMenu />
       <PluginMenu />
       <IconButton
         label={dark ? "Light mode" : "Dark mode"}
@@ -167,7 +167,7 @@ function DockviewRightHeaderActionsComponent() {
  * The built-in panels shown in the group to the right of the viewer, in their
  * initial order
  *
- * Perspectives can hide some of them, see `usePerspectivePanels`.
+ * Lenses can hide some of them, see `useLensPanels`.
  */
 const builtInPanels = [
   { id: PanelId.project, title: "Project", component: "ProjectPanel" },
@@ -229,9 +229,9 @@ export function App() {
 
   // The panels contributed by plugins join the group of the project panel
   usePluginPanels(dockviewApi, PanelId.project);
-  // ...and perspectives hide some of the built-in ones (after plugin panels
-  // are added, so that the perspective's panel exists when it is activated)
-  usePerspectivePanels(dockviewApi, builtInPanels);
+  // ...and lenses hide some of the built-in ones (after plugin panels
+  // are added, so that the lens's panel exists when it is activated)
+  useLensPanels(dockviewApi, builtInPanels);
   useActivePanelSync(dockviewApi);
   useFileDragTracking();
 

@@ -6,9 +6,9 @@ import { useAppStore } from "@/stores/app";
 
 /**
  * Keeps the built-in panels in the dockview layout in sync with the active
- * perspective (see `Plugin.perspective`)
+ * lens (see `Plugin.lens`)
  *
- * While a perspective is active, the built-in panels it hides are removed from
+ * While a lens is active, the built-in panels it hides are removed from
  * the layout and its plugin's panel is made active. Panels that are no longer
  * hidden are added back to the group they share with the other panels, at
  * their original position among the built-in panels, using the
@@ -16,22 +16,21 @@ import { useAppStore } from "@/stores/app";
  *
  * @param dockviewApi - The API of the ready dockview, or `null` while it is not
  * ready yet
- * @param builtInPanels - The built-in panels that a perspective may hide, in
+ * @param builtInPanels - The built-in panels that a lens may hide, in
  * their original order
  */
-export function usePerspectivePanels(
+export function useLensPanels(
   dockviewApi: DockviewApi | null,
   builtInPanels: readonly { id: string; title: string; component: string }[],
 ): void {
-  const activePerspectiveId = useAppStore((state) => state.activePerspectiveId);
+  const activeLensId = useAppStore((state) => state.activeLensId);
   // joined, so that the selector returns a value that compares by content
   const hiddenPanelIds = useAppStore((state) =>
-    state.activePerspectiveId === null
+    state.activeLensId === null
       ? ""
-      : (
-          state.plugins.get(state.activePerspectiveId)?.perspective
-            ?.hiddenPanels ?? []
-        ).join("\n"),
+      : (state.plugins.get(state.activeLensId)?.lens?.hiddenPanels ?? []).join(
+          "\n",
+        ),
   );
   const setActivePanelId = useAppStore((state) => state.setActivePanelId);
 
@@ -70,14 +69,14 @@ export function usePerspectivePanels(
             }),
       });
     });
-    if (activePerspectiveId !== null) {
-      setActivePanelId(getPluginPanelId(activePerspectiveId));
+    if (activeLensId !== null) {
+      setActivePanelId(getPluginPanelId(activeLensId));
     }
   }, [
     dockviewApi,
     builtInPanels,
     hiddenPanelIds,
-    activePerspectiveId,
+    activeLensId,
     setActivePanelId,
   ]);
 }

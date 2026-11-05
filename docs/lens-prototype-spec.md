@@ -1,16 +1,16 @@
-# InSituPy perspective prototype: implementation spec
+# InSituPy lens prototype: implementation spec
 
 Status: milestones 1a and 1b and step 2 implemented (2026-11-03); the demo recording (step 3) is open. Branch `feat/insitupy-perspective-prototype` of `SpatialPathology/insituumaps`, started from fork `main` at `da0165c`. Section 12 lists where the implementation differs from this plan.
 
-This spec turns section 12 of the design doc ([perspective-prototype.md](./perspective-prototype.md)) into ordered tasks for a later implementation session. It covers milestone 1a, milestone 1b and step 2. The demo recording (step 3) is done locally by Johannes after step 2.
+This spec turns section 12 of the design doc ([lens-prototype.md](./lens-prototype.md)) into ordered tasks for a later implementation session. It covers milestone 1a, milestone 1b and step 2. The demo recording (step 3) is done locally by Johannes after step 2.
 
 Decisions taken in the planning session:
 
-| Question        | Decision                                                                                                                                                                  |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Step-1 entry    | Both: a start screen in the plugin panel (URL field and folder picker) **and** the plugin reading `?source=` from the page URL when it is set up                          |
-| Scope and order | 1a (Sample, Cell layer, Colour cells by), then 1b (the other five sidebar sections), then step 2 (importer registry, `source` parameter, perspective hook), then the demo |
-| Branch          | `feat/insitupy-perspective-prototype`                                                                                                                                     |
+| Question        | Decision                                                                                                                                                           |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Step-1 entry    | Both: a start screen in the plugin panel (URL field and folder picker) **and** the plugin reading `?source=` from the page URL when it is set up                   |
+| Scope and order | 1a (Sample, Cell layer, Colour cells by), then 1b (the other five sidebar sections), then step 2 (importer registry, `source` parameter, lens hook), then the demo |
+| Branch          | `feat/insitupy-perspective-prototype`                                                                                                                              |
 
 ## 1. Words used in this spec
 
@@ -22,7 +22,7 @@ For readers new to TypeScript and to this codebase. Python and napari comparison
 - **Plugin**: an ES module (a JavaScript file) whose default export is `{ id, name, setup, mount }`. `setup` runs once when the plugin is loaded, `mount` draws its user interface into one panel. Comparable to a napari plugin that contributes one dock widget.
 - **Fork store**: the Zustand store of `apps/insituumaps` (`src/state/store.ts`, exported as `useAppStore`). It holds the InSituPy selection (sample, cell layer, colouring, ...) and computes a `ViewerModel` from it. Note the name clash: in plugin code, call the app's store `tmAppStore` and the fork's store `insitupyStore`.
 - **Bridge**: new code (this spec) that copies the fork store's `ViewerModel` into the app's project store.
-- **Importer** and **perspective**: as defined in the design doc, section 3.2.
+- **Importer** and **lens**: as defined in the design doc, section 3.2.
 
 ## 2. Environment for the implementation session
 
@@ -161,7 +161,7 @@ Done when screenshots of `data-000` show:
 5. The generic **Points** tab lists `transcripts:<gene>` for both genes.
 6. `smoke:plugin` passes with the 1b steps.
 
-## 7. Step 2: importer registry, `source` parameter, perspective hook
+## 7. Step 2: importer registry, `source` parameter, lens hook
 
 Step 2 moves the entry from the plugin into the app. The first two tasks are generic app changes, in their own commits with changesets. The third is plugin work.
 
@@ -177,55 +177,55 @@ Step 2 moves the entry from the plugin into the app. The first two tasks are gen
 | Docs: a short "Project importers" section; one paragraph on opening datasets                                                                                                                                                                                                                                                                                                                   | change `docs/development/plugins.md`, `docs/concepts/projects.md`                                           |
 | Changeset: `@tissuumaps/core` minor, `tissuumaps` minor                                                                                                                                                                                                                                                                                                                                        | new `.changeset/*.md`                                                                                       |
 
-### 2.2 `feat(core,app): let a plugin act as a perspective` (generic)
+### 2.2 `feat(core,app): let a plugin act as a lens` (generic)
 
-Prototype shape: a perspective is a plugin with a `perspective` field, and its one panel is the perspective panel. This is the narrowest version of the design doc's PR 3 and needs no change to how panels are mounted.
+Prototype shape: a lens is a plugin with a `lens` field, and its one panel is the lens panel. This is the narrowest version of the design doc's PR 3 and needs no change to how panels are mounted.
 
-| Change                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Files                                                                                                                             |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| `Plugin.perspective?: { appliesTo: string[]; hiddenPanels: string[] }` (importer ids it fits, built-in panel ids it hides)                                                                                                                                                                                                                                                                                                                                         | change `packages/@tissuumaps-core/src/types/plugins.ts`                                                                           |
-| App store: `plugins` entries carry the plain `perspective` data (the registry copies it in, `plugins.ts:86-91`); new `activePerspectiveId: string \| null` and `setActivePerspectiveId`                                                                                                                                                                                                                                                                            | change `packages/@tissuumaps-core/src/types/stores/app.ts`, `apps/tissuumaps/src/stores/app.ts`, `apps/tissuumaps/src/plugins.ts` |
-| Selection: `startSelectingPerspective()` in `bootstrap.ts`, modelled on `startCollapsingOnProjectSwitch` (`bootstrap.ts:74-86`). On a new `instanceId`, and when a plugin registers: use `?perspective=<plugin id>` if set; else the single registered perspective whose `appliesTo` contains `projectImporterId`; else none. Activating mounts the plugin (`pluginRegistry.mountPlugin`). Unregistering the active perspective's plugin deactivates it            | change `apps/tissuumaps/src/bootstrap.ts`                                                                                         |
-| Panel hook: `usePerspectivePanels(dockviewApi)`, modelled on `usePluginPanels.ts:25-69`. When a perspective is active, it removes the hidden built-in panels and activates the plugin's panel. When none is active, it adds them back in their original order into the Project panel's group. Move the built-in panel definitions out of `onDockviewReady` into one list, so that both use the same definitions. Keep `activePanelId` valid (`useActivePanelSync`) | new `apps/tissuumaps/src/hooks/usePerspectivePanels.ts`; change `apps/tissuumaps/src/App.tsx`, possibly `panels.ts`               |
-| Switch menu: next to the plugins menu (`App.tsx:145-161`), shown when at least one perspective is registered: "Generic" plus each perspective, the active one checked. "Generic" deactivates (and unmounts the plugin panel); choosing a perspective activates it                                                                                                                                                                                                  | new `apps/tissuumaps/src/components/app/PerspectiveMenu/index.tsx`; change `App.tsx`                                              |
-| Docs: a short "Perspectives (experimental)" section                                                                                                                                                                                                                                                                                                                                                                                                                | change `docs/development/plugins.md`                                                                                              |
-| Changeset: `@tissuumaps/core` minor, `tissuumaps` minor                                                                                                                                                                                                                                                                                                                                                                                                            | new `.changeset/*.md`                                                                                                             |
+| Change                                                                                                                                                                                                                                                                                                                                                                                                                                               | Files                                                                                                                             |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `Plugin.lens?: { appliesTo: string[]; hiddenPanels: string[] }` (importer ids it fits, built-in panel ids it hides)                                                                                                                                                                                                                                                                                                                                  | change `packages/@tissuumaps-core/src/types/plugins.ts`                                                                           |
+| App store: `plugins` entries carry the plain `lens` data (the registry copies it in, `plugins.ts:86-91`); new `activeLensId: string \| null` and `setActiveLensId`                                                                                                                                                                                                                                                                                   | change `packages/@tissuumaps-core/src/types/stores/app.ts`, `apps/tissuumaps/src/stores/app.ts`, `apps/tissuumaps/src/plugins.ts` |
+| Selection: `startSelectingLens()` in `bootstrap.ts`, modelled on `startCollapsingOnProjectSwitch` (`bootstrap.ts:74-86`). On a new `instanceId`, and when a plugin registers: use `?lens=<plugin id>` if set; else the single registered lens whose `appliesTo` contains `projectImporterId`; else none. Activating mounts the plugin (`pluginRegistry.mountPlugin`). Unregistering the active lens's plugin deactivates it                          | change `apps/tissuumaps/src/bootstrap.ts`                                                                                         |
+| Panel hook: `useLensPanels(dockviewApi)`, modelled on `usePluginPanels.ts:25-69`. When a lens is active, it removes the hidden built-in panels and activates the plugin's panel. When none is active, it adds them back in their original order into the Project panel's group. Move the built-in panel definitions out of `onDockviewReady` into one list, so that both use the same definitions. Keep `activePanelId` valid (`useActivePanelSync`) | new `apps/tissuumaps/src/hooks/useLensPanels.ts`; change `apps/tissuumaps/src/App.tsx`, possibly `panels.ts`                      |
+| Switch menu: next to the plugins menu (`App.tsx:145-161`), shown when at least one lens is registered: "Generic" plus each lens, the active one checked. "Generic" deactivates (and unmounts the plugin panel); choosing a lens activates it                                                                                                                                                                                                         | new `apps/tissuumaps/src/components/app/LensMenu/index.tsx`; change `App.tsx`                                                     |
+| Docs: a short "Lenses (experimental)" section                                                                                                                                                                                                                                                                                                                                                                                                        | change `docs/development/plugins.md`                                                                                              |
+| Changeset: `@tissuumaps/core` minor, `tissuumaps` minor                                                                                                                                                                                                                                                                                                                                                                                              | new `.changeset/*.md`                                                                                                             |
 
-### 2.3 `feat(insituumaps): register the InSituPy importer and perspective` (plugin)
+### 2.3 `feat(insituumaps): register the InSituPy importer and lens` (plugin)
 
 | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Files                             |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
 | Importer `insitupy`. `supports(normalizedSource, workspace)`: for a URL, `exists(".ispy")` or `exists("metadata.parquet")` or `exists("metadata.csv")` through the fork's URL source (`insitupy/source.ts`); for a workspace path, the same through the directory source. `open(...)`: call the fork store's `openUrl` or `openDirectory`, wait until the project or the experiment is ready, then return the `RawProject` of the current model (for an experiment: only the `sample` layer, and the sample table opens in the panel) | new `src/plugin/importer.ts`      |
 | Bridge: when the app loads the project returned by `open` with its own fresh `instanceId`, the bridge adopts that id instead of treating it as "the user opened something else"                                                                                                                                                                                                                                                                                                                                                       | change `src/plugin/bridge.ts`     |
-| Plugin: `perspective: { appliesTo: ["insitupy"], hiddenPanels: ["images", "labels", "points", "shapes", "tables"] }`. Register the importer in `setup` only if `registerProjectImporter` exists, so that the same file still loads into an app without step 2                                                                                                                                                                                                                                                                         | change `src/plugin/index.ts`      |
+| Plugin: `lens: { appliesTo: ["insitupy"], hiddenPanels: ["images", "labels", "points", "shapes", "tables"] }`. Register the importer in `setup` only if `registerProjectImporter` exists, so that the same file still loads into an app without step 2                                                                                                                                                                                                                                                                                | change `src/plugin/index.ts`      |
 | Smoke test for step 2                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | change `scripts/smoke-plugin.mjs` |
 
 Done when:
 
-1. A fresh load of `http://localhost:5173/?source=http://localhost:8787/fixture/data-000/` shows the welcome view (no importer yet). After **Load plugin from URL…**, the sample opens by itself (H&E with cells), the Images, Labels, Points, Shapes and Tables tabs are gone, the InSituPy tab is active, and the perspective menu shows "InSituPy" checked. One screenshot.
-2. In the perspective menu, **Generic**: the six built-in tabs are back and the Labels tab lists `mask` and `mask-outlines:cells`. **InSituPy** again: the sidebar shows the same selection as before. Two screenshots.
+1. A fresh load of `http://localhost:5173/?source=http://localhost:8787/fixture/data-000/` shows the welcome view (no importer yet). After **Load plugin from URL…**, the sample opens by itself (H&E with cells), the Images, Labels, Points, Shapes and Tables tabs are gone, the InSituPy tab is active, and the lens menu shows "InSituPy" checked. One screenshot.
+2. In the lens menu, **Generic**: the six built-in tabs are back and the Labels tab lists `mask` and `mask-outlines:cells`. **InSituPy** again: the sidebar shows the same selection as before. Two screenshots.
 3. In a fresh page with the plugin loaded, **Open dataset…** in the welcome view with `http://localhost:8787/fixture/` opens the sample table. One screenshot.
-4. `?perspective=` with a missing id falls back to generic, without an error.
+4. `?lens=` with a missing id falls back to generic, without an error.
 5. `pnpm typecheck`, `pnpm lint`, `pnpm fmt:check`, `pnpm exec vitest run apps/tissuumaps/src/data/io/dataset.test.ts` and `smoke:plugin` pass.
 
 ## 8. Commit plan
 
 The order of commits on the branch. G = generic (cherry-pick candidate for upstream), P = plugin, D = docs of the fork.
 
-1. D `docs: add the perspective prototype design doc` (done)
-2. D `docs: add the perspective prototype implementation spec` (this file)
+1. D `docs: add the lens prototype design doc` (done)
+2. D `docs: add the lens prototype implementation spec` (this file)
 3. P `build(insituumaps): build the viewer as a TissUUmaps plugin` (1a.1)
 4. P `feat(insituumaps): write the InSituPy model into the project store` (1a.2 to 1a.4)
 5. P `feat(insituumaps): show sample, cell layer and colouring in the plugin panel` (1a.5, 1a.6)
 6. P `test(insituumaps): headless smoke test for the plugin` (1a.7)
 7. P `feat(insituumaps): add the remaining sidebar sections to the plugin` (1b)
 8. G `feat(core,app): open datasets through project importers` (2.1)
-9. G `feat(core,app): let a plugin act as a perspective` (2.2)
-10. P `feat(insituumaps): register the InSituPy importer and perspective` (2.3)
+9. G `feat(core,app): let a plugin act as a lens` (2.2)
+10. P `feat(insituumaps): register the InSituPy importer and lens` (2.3)
 
 Rules:
 
-- G commits touch only `packages/`, `apps/tissuumaps/`, `docs/development/`, `docs/concepts/` and `.changeset/`. They never touch `apps/insituumaps/`, `CLAUDE.md`, `planning/` or the `docs/perspective-prototype*` files.
+- G commits touch only `packages/`, `apps/tissuumaps/`, `docs/development/`, `docs/concepts/` and `.changeset/`. They never touch `apps/insituumaps/`, `CLAUDE.md`, `planning/` or the `docs/lens-prototype*` files.
 - P commits touch only `apps/insituumaps/`. The `insituumaps` app is private, but CI asks for a changeset for every changed application, so add one per P commit that changes it (`.changeset/`, `insituumaps` patch or minor).
 - Conventional commit messages, as in the rest of the repo.
 - Never stage `pnpm-lock.yaml` or `pnpm-workspace.yaml` while the install workaround (section 2) is in place.
@@ -255,12 +255,12 @@ Found while reading the code. Each states what to check first.
 ## 10. Out of scope
 
 - Quick settings (#390), and any change to `TableData` or the table providers.
-- Declarative sections and JSON perspectives (design doc sections 5 and 6), including `terms` and `defaults`.
+- Declarative sections and JSON lenses (design doc sections 5 and 6), including `terms` and `defaults`.
 - Presets (#341).
 - Viewer hooks for plugins: viewer click events (click-to-inspect), plugin viewer controls (scale bar, legend in the viewer), viewport access.
 - Upstream PRs, the issue text (design doc section 11) and the cherry-picks onto `upstream/main`. The prototype only keeps them possible (section 8).
 - The SpatialData importer and InSituPy's SpatialData dialect.
-- A user preference for the perspective in the settings store, asking when several perspectives apply, dataset-shipped perspectives, and more than one panel per perspective.
+- A user preference for the lens in the settings store, asking when several lenses apply, dataset-shipped lenses, and more than one panel per lens.
 - Dark mode for the plugin UI, and tests for GUI components and glue code (not required by the conventions).
 - Removing the standalone `apps/insituumaps` app.
 
@@ -307,12 +307,12 @@ Step 2:
 16. **Importer ID in the project store (2.1).** The ID of the importer that built the open project is `importerId` in the project store's state, next to `source` and `instanceId`, not in the app store: every other way of loading a project (`loadProject`, `clear`) resets it, and a plugin replacing its own objects keeps it.
 17. **URL parameters (2.1).** `project` wins over `source` when both are given; with `source` alone, `project.tm4` is no longer tried. `setProjectURLParam` and `clearProjectURLParam` also remove `source`, and opening a dataset removes `project`.
 18. **"Open dataset from URL…" (2.1)** is only shown once an importer is registered. A dataset no importer recognises gets an alert ("Dataset not recognized").
-19. **Perspective shape (2.2).** `Plugin.perspective = { appliesTo, hiddenPanels }`; the plugin's one panel is the perspective panel, and only plugins with a `mount` can have one. Selection runs on every new project instance and whenever the set of registered perspectives changes (not when a plugin is merely mounted, so that a manual switch to "Generic" stays). Closing the perspective's tab also switches to generic, so that the built-in panels never stay hidden without a perspective panel.
+19. **Lens shape (2.2).** `Plugin.lens = { appliesTo, hiddenPanels }`; the plugin's one panel is the lens panel, and only plugins with a `mount` can have one. Selection runs on every new project instance and whenever the set of registered lenses changes (not when a plugin is merely mounted, so that a manual switch to "Generic" stays). Closing the lens's tab also switches to generic, so that the built-in panels never stay hidden without a lens panel.
 20. **Folders (2.3).** The InSituPy importer only supports URLs. Folders on the user's computer are opened from the plugin's start screen, as in step 1.
 21. **Double write (2.3, risk 10).** Opening through the importer writes the project twice: once by the bridge while the fork store opens it, once by the app with the importer's result. The bridge adopts the second instance (same `importerId`, a source is open), so the plugin keeps its state; the view is fitted twice.
-22. **Checks (step 2).** In a fresh page with `?source=` naming the fixture, loading the plugin from the plugins menu opens the sample by itself, with the generic data tabs hidden and the InSituPy tab active; "Generic" in the perspective menu shows them again and lists the plugin's objects; switching back shows the same selection; "Open dataset from URL…" opens the experiment's sample browser, and an unknown URL gives an alert; `?perspective=` naming no plugin falls back to generic. `smoke:plugin` checks the perspective and the switch too. `dataset.test.ts` covers the choice of importer and `plugins.test.ts` the perspective bookkeeping of the registry.
+22. **Checks (step 2).** In a fresh page with `?source=` naming the fixture, loading the plugin from the plugins menu opens the sample by itself, with the generic data tabs hidden and the InSituPy tab active; "Generic" in the lens menu shows them again and lists the plugin's objects; switching back shows the same selection; "Open dataset from URL…" opens the experiment's sample browser, and an unknown URL gives an alert; `?lens=` naming no plugin falls back to generic. `smoke:plugin` checks the lens and the switch too. `dataset.test.ts` covers the choice of importer and `plugins.test.ts` the lens bookkeeping of the registry.
 23. **Transcript loads aborted for good (found in step 2 testing).** The fork's transcript index reader caches each gene's tile table as a promise made with the first caller's abort signal. The standalone app never passes signals to providers, but the app's data cache does: once it abandoned a transcript load, every later load of that gene failed with an `AbortError` that the cache keeps. Fixed in the reader: the tile table of a gene, and in `TranscriptSource.openIndex` the reader itself, are now read once without any caller's signal, and each caller races its own (decision D15, `raceSignal` in `src/lib/utils.ts`). The plugin's interim workaround in its transcript provider is gone.
-24. **Perspective after the start screen (found in step 2 testing).** A dataset opened from the plugin's start screen stayed in the generic perspective, since the bridge wrote its projects with `importerId` `null` and the app selects a perspective by the importer ID of each new project instance. The bridge now writes every project it builds with the InSituPy importer's ID, so the app selects the InSituPy perspective however the dataset was opened, also for a local folder, which the importer itself does not support. A manual switch to "Generic" lasts until the next sample, as with the importer.
+24. **Lens after the start screen (found in step 2 testing).** A dataset opened from the plugin's start screen stayed in the generic lens, since the bridge wrote its projects with `importerId` `null` and the app selects a lens by the importer ID of each new project instance. The bridge now writes every project it builds with the InSituPy importer's ID, so the app selects the InSituPy lens however the dataset was opened, also for a local folder, which the importer itself does not support. A manual switch to "Generic" lasts until the next sample, as with the importer.
 
 ## 13. Follow-ups
 
@@ -321,14 +321,14 @@ Open work after step 2, in the suggested order. Items 1 and 2 need the full data
 1. **Before the demo.**
    - Open a full dataset from a local folder through the plugin's start screen. This path is untested; the plugin hands the folder to the app as its workspace (`bridge.ts`).
    - Check transcript loading on the full slide: the plugin loads each gene for the whole sample (C5), so pick demo genes whose loading time is acceptable.
-   - Choose the start of the demo: `?source=` and then "Load plugin from URL…" (shows the importer and the perspective), or the plugin's start screen (needed for a local folder).
-2. **Record the demo (step 3).** Show the dataset opening by itself in the InSituPy perspective, the sidebar workflow (sample, cell layer, colouring, outlines, transcripts), and the switch to "Generic", where the same objects appear in the Labels and Points panels.
+   - Choose the start of the demo: `?source=` and then "Load plugin from URL…" (shows the importer and the lens), or the plugin's start screen (needed for a local folder).
+2. **Record the demo (step 3).** Show the dataset opening by itself in the InSituPy lens, the sidebar workflow (sample, cell layer, colouring, outlines, transcripts), and the switch to "Generic", where the same objects appear in the Labels and Points panels.
 3. **Fork.** Open a PR from `feat/insitupy-perspective-prototype` into the fork's `main`, if the prototype should live there.
 4. **Upstream (`jwrth/TissUUmaps`).**
    - Merge `upstream/main` into the fork first (it is 3 commits behind, risk 1), or accept docs conflicts when cherry-picking.
    - The prerequisites as separate PRs: outline render mode and per-image tile caches (design doc, PR 0).
-   - Cherry-pick the two generic commits onto branches from `upstream/main`, one PR each: `a7fd732` (project importers) and `bf73e8e` (perspectives). Remove the AI co-author trailers and declare AI use in the PR template (`docs/development/ai-policy.md`).
-   - Post the issue (design doc, section 11) with the demo: importers first, perspectives as the follow-up.
+   - Cherry-pick the two generic commits onto branches from `upstream/main`, one PR each: `a7fd732` (project importers) and `bf73e8e` (lenses). Remove the AI co-author trailers and declare AI use in the PR template (`docs/development/ai-policy.md`).
+   - Post the issue (design doc, section 11) with the demo: importers first, lenses as the follow-up.
 5. **Small upstream issues found while testing.**
    - The tile race of note 13 ("Failed to transfer tile data: Data has been destroyed" when a project is cleared or replaced during recolouring). Reproduce it with a plain `.tm4` project before filing it.
    - Optional: the Vite dev server reloads the page when a forwarded console message exceeds its WebSocket payload limit (note 15). A development-only annoyance.
@@ -341,4 +341,4 @@ Open work after step 2, in the suggested order. Items 1 and 2 need the full data
 7. **Later, with the maintainers (out of scope for the prototype).**
    - Viewer hooks for plugins: the visible region (per-view transcript loading), viewer click events (click-to-inspect) and plugin viewer controls (scale bar, legend in the viewer).
    - Quick settings (#390) and declarative sections, so that plugins reuse app widgets instead of copies.
-   - A per-importer perspective preference in the settings store, and a choice when several perspectives apply.
+   - A per-importer lens preference in the settings store, and a choice when several lenses apply.

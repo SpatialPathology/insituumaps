@@ -98,9 +98,9 @@ Add `?source=<folder url>` to its URL, or host a redirect that fills it in.
 
 The same sources also build as a TissUUmaps plugin, which shows the sidebar in a panel of the
 TissUUmaps app and lets the app's viewer draw the sample. With the project importer and
-perspective hooks of this branch, the app opens InSituPy datasets itself and swaps its generic
-panels for the InSituPy panel. Design and status: `docs/perspective-prototype.md` and
-`docs/perspective-prototype-spec.md` at the repository root.
+lens hooks of this branch, the app opens InSituPy datasets itself and swaps its generic
+panels for the InSituPy panel. Design and status: `docs/lens-prototype.md` and
+`docs/lens-prototype-spec.md` at the repository root.
 
 #### Setup
 
@@ -138,32 +138,32 @@ confirm. `pnpm --filter insituumaps build:plugin` writes `dist-plugin/` once ins
 1. Open <http://localhost:5173/> and load the plugin. An "InSituPy" tab opens with the start
    screen.
 2. Enter `http://localhost:8787/fixture/` and click "Open"; the sample table covers the window.
-   Open `data-000`. The app switches to the InSituPy perspective, as in Test B: only the Project
+   Open `data-000`. The app switches to the InSituPy lens, as in Test B: only the Project
    and InSituPy tabs remain.
 3. Check: the H&E image with cell outlines; colour by Gene (`counts`, EPCAM) with a legend and
    editable Min/Max; colour by Cell property (`leiden`) with per-category boxes and counts;
    the `main-copy` cell layer; outlines on Nuclei; the `nuclei` image in grayscale; transcripts
    of EPCAM and CD3E as coloured points; annotations and regions (with the demo annotations);
-   after "Generic" in the Perspective menu, the Labels, Points and Tables tabs listing the
+   after "Generic" in the Lens menu, the Labels, Points and Tables tabs listing the
    plugin's objects; switching to `data-001` from the sample browser (grid button in the panel
    header), which fits the view to the new sample.
 
-#### Test B: importer and perspective
+#### Test B: importer and lens
 
 1. Open <http://localhost:5173/?source=http://localhost:8787/fixture/data-000/> in a fresh tab.
    The welcome view stays: no importer is loaded yet.
 2. Load the plugin.
-3. Check: the sample opens by itself; only the Project and InSituPy tabs remain; a Perspective
+3. Check: the sample opens by itself; only the Project and InSituPy tabs remain; a Lens
    button (panel icon) appears left of the plugins menu. "Generic" there brings back the Images,
    Labels, Points, Shapes and Tables tabs, which show the plugin's objects; "InSituPy" returns
    with the same selection. Closing the InSituPy tab also switches to Generic, and
-   `&perspective=nothing` in the URL opens the generic panels without an error.
+   `&lens=nothing` in the URL opens the generic panels without an error.
 
 #### Test C: "Open dataset from URL…"
 
 1. Open <http://localhost:5173/>, load the plugin and click the Project tab. The welcome view
    now offers "Open dataset from URL…" (only once an importer is registered).
-2. Enter `http://localhost:8787/fixture/`: the sample table opens in the InSituPy perspective.
+2. Enter `http://localhost:8787/fixture/`: the sample table opens in the InSituPy lens.
 3. Enter `http://localhost:8787/nothing/`: a "Dataset not recognized" dialog appears.
 
 #### Test D: your own dataset

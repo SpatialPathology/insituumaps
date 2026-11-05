@@ -30,8 +30,7 @@ export const appStore: AppStoreApi = createStore<AppStore>()(
       setHighlightedItemGroup: (highlightedItemGroup) =>
         set({ highlightedItemGroup }),
       setActivePanelId: (activePanelId) => set({ activePanelId }),
-      setActivePerspectiveId: (activePerspectiveId) =>
-        set({ activePerspectiveId }),
+      setActiveLensId: (activeLensId) => set({ activeLensId }),
       setExpandedImageIds: (expandedImageIds) => set({ expandedImageIds }),
       setExpandedLabelsIds: (expandedLabelsIds) => set({ expandedLabelsIds }),
       setExpandedPointsIds: (expandedPointsIds) => set({ expandedPointsIds }),
@@ -95,7 +94,7 @@ function createInitialAppStoreState(): AppStoreState {
     tableDataProviders: new Map(),
     projectImporters: new Map(),
     plugins: new Map(),
-    activePerspectiveId: null,
+    activeLensId: null,
     activePanelId: PanelId.project,
     expandedImageIds: [],
     expandedLabelsIds: [],

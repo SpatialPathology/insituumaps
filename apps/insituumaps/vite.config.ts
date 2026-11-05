@@ -12,7 +12,7 @@ import {
 /**
  * The build options of the `plugin` mode, which builds the viewer as a
  * TissUUmaps plugin: a single ES module file that the TissUUmaps app loads
- * through "Load plugin from URL" (see docs/perspective-prototype-spec.md)
+ * through "Load plugin from URL" (see docs/lens-prototype-spec.md)
  *
  * The module bundles everything it imports (React, Zustand, the TissUUmaps
  * packages), since a plugin only receives the application's stores. Its

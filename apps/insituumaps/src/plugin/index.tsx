@@ -1,11 +1,11 @@
 /**
  * The InSituPy viewer as a TissUUmaps plugin (see
- * docs/perspective-prototype-spec.md)
+ * docs/lens-prototype-spec.md)
  *
  * Setting the plugin up registers its data providers and its project importer
  * and starts copying the fork store's model into the app's project store;
  * mounting it shows the start screen or the sidebar sections in the plugin's
- * panel. The plugin is also a perspective for the importer's projects, which
+ * panel. The plugin is also a lens for the importer's projects, which
  * hides the generic panels. In an app without project importers, the plugin
  * opens a `source` GET parameter itself.
  *
@@ -46,7 +46,7 @@ const plugin: Plugin = {
   id: pluginId,
   name: "InSituPy",
   // replaces the generic panels for the projects of the InSituPy importer
-  perspective: {
+  lens: {
     appliesTo: [insitupyImporterId],
     hiddenPanels: ["images", "labels", "points", "shapes", "tables"],
   },

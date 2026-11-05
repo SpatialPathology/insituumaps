@@ -19,7 +19,7 @@
  *
  * Opens the TissUUmaps app with `?source=` naming the fixture experiment, adds
  * the plugin as a module script (it registers itself, and the app opens the
- * source through the plugin's importer and shows the plugin's perspective; in
+ * source through the plugin's importer and shows the plugin's lens; in
  * an app without project importers, the plugin opens the source itself),
  * walks through sample, cell layer, colouring, outlines, images, transcripts
  * and overlays, and checks that the app's project store and viewer follow.
@@ -111,7 +111,7 @@ try {
     opened.panel === "plugin:insitupy",
     `the plugin's panel is active (${opened.panel})`,
   );
-  // tab titles of the panel layout, for the perspective checks
+  // tab titles of the panel layout, for the lens checks
   const tabs = () =>
     page.evaluate(
       `[...document.querySelectorAll(".dv-tab")].map((tab) => tab.textContent.trim()).filter(Boolean)`,
@@ -120,23 +120,23 @@ try {
     "typeof app.registerProjectImporter === 'function'",
   );
   if (importsDatasets) {
-    const perspective = await state(
-      "{ active: app.activePerspectiveId, importer: project.importerId }",
+    const lens = await state(
+      "{ active: app.activeLensId, importer: project.importerId }",
     );
     check(
-      perspective.importer === "insitupy",
-      `the app opened ?source= through the plugin's importer (${perspective.importer})`,
+      lens.importer === "insitupy",
+      `the app opened ?source= through the plugin's importer (${lens.importer})`,
     );
     check(
-      perspective.active === "insitupy",
-      `the InSituPy perspective is active (${perspective.active})`,
+      lens.active === "insitupy",
+      `the InSituPy lens is active (${lens.active})`,
     );
-    const perspectiveTabs = await tabs();
+    const lensTabs = await tabs();
     check(
       !["Images", "Labels", "Points", "Shapes", "Tables"].some((title) =>
-        perspectiveTabs.includes(title),
+        lensTabs.includes(title),
       ),
-      `the generic data panels are hidden (${perspectiveTabs})`,
+      `the generic data panels are hidden (${lensTabs})`,
     );
   }
   await page.screenshot(`${outDir}/01-samples.png`);
@@ -411,8 +411,8 @@ try {
 
   console.log("6. the generic panels show the plugin's objects");
   if (importsDatasets) {
-    // as the perspective menu's "Generic" does
-    await call(`app.setActivePerspectiveId(null)`);
+    // as the lens menu's "Generic" does
+    await call(`app.setActiveLensId(null)`);
     await call(`window.tissuumaps.unmountPlugin("insitupy")`);
     await sleep(500);
     const genericTabs = await tabs();
@@ -420,7 +420,7 @@ try {
       ["Images", "Labels", "Points", "Shapes", "Tables"].every((title) =>
         genericTabs.includes(title),
       ),
-      `the generic perspective shows the data panels again (${genericTabs})`,
+      `the generic lens shows the data panels again (${genericTabs})`,
     );
   }
   await call(`app.setActivePanelId("labels")`);
@@ -432,14 +432,14 @@ try {
   );
   await page.screenshot(`${outDir}/06-labels-panel.png`);
   if (importsDatasets) {
-    // as choosing InSituPy in the perspective menu does
-    await call(`app.setActivePerspectiveId("insitupy")`);
+    // as choosing InSituPy in the lens menu does
+    await call(`app.setActiveLensId("insitupy")`);
     await call(`window.tissuumaps.mountPlugin("insitupy")`);
     await sleep(1000);
     const panelText = await page.evaluate(`document.body.innerText`);
     check(
       panelText.includes("leiden"),
-      "back in the perspective, the sidebar shows the same colouring",
+      "back in the lens, the sidebar shows the same colouring",
     );
   } else {
     await call(`app.setActivePanelId("plugin:insitupy")`);
@@ -490,13 +490,13 @@ try {
   await call(`p.stores.projectStore.getState().clear()`);
   await sleep(500);
   const closed = await state(
-    "{ source: s.source, panel: app.activePanelId, perspective: app.activePerspectiveId }",
+    "{ source: s.source, panel: app.activePanelId, lens: app.activeLensId }",
   );
   check(closed.source === null, "the plugin shows its start screen again");
   if (importsDatasets) {
     check(
-      closed.perspective === null,
-      `the generic perspective for a project without importer (${closed.perspective})`,
+      closed.lens === null,
+      `the generic lens for a project without importer (${closed.lens})`,
     );
   }
   await page.screenshot(`${outDir}/08-closed.png`);
@@ -504,7 +504,7 @@ try {
   // "Failed to transfer tile data: Data has been destroyed" is the app's own
   // race: tiles of an image or labels object whose data source changed are
   // still recoloured after the data cache destroyed the old data (see
-  // docs/perspective-prototype-spec.md, section 12)
+  // docs/lens-prototype-spec.md, section 12)
   const errors = page.errors.filter(
     (e) =>
       !e.includes("404") &&

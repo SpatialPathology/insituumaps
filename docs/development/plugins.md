@@ -296,9 +296,9 @@ The panel is shown for exactly as long as the plugin is mounted:
   the callback returned by `setup` afterwards, so an unmount callback may still
   rely on whatever `setup` set up.
 
-### Perspectives (experimental)
+### Lenses (experimental)
 
-A plugin with a `mount` can declare its panel a **perspective**: an
+A plugin with a `mount` can declare its panel a **lens**: an
 arrangement of the user interface for one kind of data, which replaces the
 generic panels for the projects of the importers it applies to:
 
@@ -306,7 +306,7 @@ generic panels for the projects of the importers it applies to:
 const plugin = {
   id: "my-format-view",
   name: "My format",
-  perspective: {
+  lens: {
     appliesTo: ["my-format"], // project importer IDs
     hiddenPanels: ["images", "labels", "points", "shapes", "tables"],
   },
@@ -316,20 +316,20 @@ const plugin = {
 };
 ```
 
-Whenever another project is loaded, TissUUmaps activates the perspective that
+Whenever another project is loaded, TissUUmaps activates the lens that
 applies to the project's importer (the project store's `importerId`), if
-exactly one does, and the generic user interface otherwise. A `perspective`
+exactly one does, and the generic user interface otherwise. A `lens`
 GET parameter naming a plugin overrides this; one naming no plugin with a
-perspective selects the generic user interface. Activating a perspective
+lens selects the generic user interface. Activating a lens
 mounts its plugin, removes the built-in panels listed in `hiddenPanels` and
 makes the plugin's panel active.
 
-While any plugin has a perspective, a perspective menu next to the plugins menu
-switches between the perspectives and "Generic". Switching to the generic user
-interface unmounts the perspective's plugin and shows all built-in panels
-again, as does closing the perspective's panel. Switching never changes the
-project, so the generic panels show the objects the perspective's plugin
-created. The active perspective is `appStore.getState().activePerspectiveId`.
+While any plugin has a lens, a lens menu next to the plugins menu
+switches between the lenses and "Generic". Switching to the generic user
+interface unmounts the lens's plugin and shows all built-in panels
+again, as does closing the lens's panel. Switching never changes the
+project, so the generic panels show the objects the lens's plugin
+created. The active lens is `appStore.getState().activeLensId`.
 
 ### Dropping files
 

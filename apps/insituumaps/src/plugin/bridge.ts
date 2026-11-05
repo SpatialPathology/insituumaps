@@ -5,7 +5,7 @@
  * The fork store rebuilds its whole model on every change of the selection.
  * Another sample replaces the app's project with a fresh instance ID, so that
  * the viewer fits the view to it, and marks it as built by the InSituPy
- * importer, so that the app selects the InSituPy perspective for it (as it
+ * importer, so that the app selects the InSituPy lens for it (as it
  * does for a dataset opened through the importer itself); any other change
  * only rewrites the objects
  * the plugin owns (see `mergeOwned`), so that objects the user added in the
@@ -114,7 +114,7 @@ export function startProjectBridge({
         instanceId: writtenInstanceId,
         // the plugin builds the project the way its importer would, also for
         // a dataset opened from its start screen, so that the app selects the
-        // InSituPy perspective however the dataset was opened
+        // InSituPy lens however the dataset was opened
         importerId: insitupyImporterId,
       });
       // the whole sample counts as in view (see sampleExtent)

@@ -43,44 +43,44 @@ describe("pluginRegistry", () => {
     });
   });
 
-  it("adds a copy of the perspective of a plugin with a mount", () => {
-    const perspective = { appliesTo: ["format"], hiddenPanels: ["images"] };
+  it("adds a copy of the lens of a plugin with a mount", () => {
+    const lens = { appliesTo: ["format"], hiddenPanels: ["images"] };
     pluginRegistry.registerPlugin({
       id: "p",
       name: "P",
       mount: () => {},
-      perspective,
+      lens,
     });
-    const stored = appStore.getState().plugins.get("p")?.perspective;
-    expect(stored).toEqual(perspective);
-    expect(stored?.appliesTo).not.toBe(perspective.appliesTo);
+    const stored = appStore.getState().plugins.get("p")?.lens;
+    expect(stored).toEqual(lens);
+    expect(stored?.appliesTo).not.toBe(lens.appliesTo);
   });
 
-  it("ignores the perspective of a plugin without a mount", () => {
+  it("ignores the lens of a plugin without a mount", () => {
     pluginRegistry.registerPlugin({
       id: "p",
       name: "P",
-      perspective: { appliesTo: ["format"], hiddenPanels: [] },
+      lens: { appliesTo: ["format"], hiddenPanels: [] },
     });
-    expect(appStore.getState().plugins.get("p")?.perspective).toBeUndefined();
+    expect(appStore.getState().plugins.get("p")?.lens).toBeUndefined();
   });
 
-  it("switches to the generic user interface when the active perspective's plugin is unmounted or unregistered", () => {
+  it("switches to the generic user interface when the active lens's plugin is unmounted or unregistered", () => {
     const plugin: Plugin = {
       id: "p",
       name: "P",
       mount: () => {},
-      perspective: { appliesTo: [], hiddenPanels: [] },
+      lens: { appliesTo: [], hiddenPanels: [] },
     };
     pluginRegistry.registerPlugin(plugin);
     pluginRegistry.mountPlugin("p");
-    appStore.getState().setActivePerspectiveId("p");
+    appStore.getState().setActiveLensId("p");
     pluginRegistry.unmountPlugin("p");
-    expect(appStore.getState().activePerspectiveId).toBeNull();
+    expect(appStore.getState().activeLensId).toBeNull();
     pluginRegistry.mountPlugin("p");
-    appStore.getState().setActivePerspectiveId("p");
+    appStore.getState().setActiveLensId("p");
     pluginRegistry.unregisterPlugin("p");
-    expect(appStore.getState().activePerspectiveId).toBeNull();
+    expect(appStore.getState().activeLensId).toBeNull();
   });
 
   it("does not register a plugin whose setup throws", () => {

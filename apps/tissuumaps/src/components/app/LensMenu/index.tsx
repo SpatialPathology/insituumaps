@@ -12,29 +12,27 @@ import {
 import { pluginRegistry } from "@/plugins";
 import { useAppStore } from "@/stores/app";
 
-export type PerspectiveMenuProps = {
+export type LensMenuProps = {
   className?: string;
 };
 
 /**
- * The menu for switching between the perspectives of the registered plugins
- * and the generic user interface, shown while any plugin has a perspective
+ * The menu for switching between the lenses of the registered plugins
+ * and the generic user interface, shown while any plugin has a lens
  *
- * Picking a perspective mounts its plugin and hides the built-in panels it
- * hides; picking "Generic" unmounts the active perspective's plugin and shows
+ * Picking a lens mounts its plugin and hides the built-in panels it
+ * hides; picking "Generic" unmounts the active lens's plugin and shows
  * all built-in panels again. The project is never changed.
  */
-export function PerspectiveMenu({ className }: PerspectiveMenuProps) {
+export function LensMenu({ className }: LensMenuProps) {
   const plugins = useAppStore((state) => state.plugins);
-  const activePerspectiveId = useAppStore((state) => state.activePerspectiveId);
-  const setActivePerspectiveId = useAppStore(
-    (state) => state.setActivePerspectiveId,
-  );
+  const activeLensId = useAppStore((state) => state.activeLensId);
+  const setActiveLensId = useAppStore((state) => state.setActiveLensId);
 
-  const perspectives = [...plugins]
-    .filter(([, plugin]) => plugin.perspective !== undefined)
+  const lenses = [...plugins]
+    .filter(([, plugin]) => plugin.lens !== undefined)
     .sort(([, a], [, b]) => a.name.localeCompare(b.name));
-  if (perspectives.length === 0) {
+  if (lenses.length === 0) {
     return null;
   }
 
@@ -44,36 +42,34 @@ export function PerspectiveMenu({ className }: PerspectiveMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={
-          <IconButton label="Perspective" size="icon" className={className} />
-        }
+        render={<IconButton label="Lens" size="icon" className={className} />}
       >
         <PanelsTopLeftIcon />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuGroup>
-          <DropdownMenuLabel>Perspective</DropdownMenuLabel>
-          {perspectives.map(([pluginId, plugin]) => (
+          <DropdownMenuLabel>Lens</DropdownMenuLabel>
+          {lenses.map(([pluginId, plugin]) => (
             <DropdownMenuItem
               key={pluginId}
               onClick={() => {
-                setActivePerspectiveId(pluginId);
+                setActiveLensId(pluginId);
                 pluginRegistry.mountPlugin(pluginId);
               }}
             >
-              {checkIcon(activePerspectiveId === pluginId)}
+              {checkIcon(activeLensId === pluginId)}
               {plugin.name}
             </DropdownMenuItem>
           ))}
           <DropdownMenuItem
             onClick={() => {
-              setActivePerspectiveId(null);
-              if (activePerspectiveId !== null) {
-                pluginRegistry.unmountPlugin(activePerspectiveId);
+              setActiveLensId(null);
+              if (activeLensId !== null) {
+                pluginRegistry.unmountPlugin(activeLensId);
               }
             }}
           >
-            {checkIcon(activePerspectiveId === null)}
+            {checkIcon(activeLensId === null)}
             Generic
           </DropdownMenuItem>
         </DropdownMenuGroup>

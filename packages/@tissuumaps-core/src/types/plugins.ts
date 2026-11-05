@@ -78,19 +78,19 @@ export type Plugin = {
   mount?: (container: HTMLElement, stores: PluginStores) => (() => void) | void;
 
   /**
-   * Makes the plugin's panel a perspective: an arrangement of the user
+   * Makes the plugin's panel a lens: an arrangement of the user
    * interface for one kind of data (experimental)
    *
-   * While the perspective is active, the plugin is mounted, its panel is
+   * While the lens is active, the plugin is mounted, its panel is
    * active, and the built-in panels it hides are removed from the layout. The
-   * application activates the perspective whenever a project is loaded by one
-   * of the importers it applies to, unless another perspective applies too, and
-   * the user can switch between the perspectives and the generic user
+   * application activates the lens whenever a project is loaded by one
+   * of the importers it applies to, unless another lens applies too, and
+   * the user can switch between the lenses and the generic user
    * interface at any time. Switching never changes the project.
    *
    * Only takes effect for a plugin with a {@link mount}.
    */
-  perspective?: {
+  lens?: {
     /** The IDs of the project importers whose projects it is made for */
     appliesTo: string[];
 

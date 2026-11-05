@@ -26,13 +26,13 @@ const fallbackProjectUrl = "project.tm4";
  * Registers the built-in data providers, starts the data caches and the plugin
  * registry, registers the built-in plugins, marks the project open once it has
  * a source or data, collapses the expanded objects whenever another project is
- * loaded or the project is closed, selects the perspective of each project,
+ * loaded or the project is closed, selects the lens of each project,
  * starts loading the initial project, and finally announces that the
  * application has loaded.
  * The project is only loading, not loaded, by the time this returns.
  *
  * @returns A callback that cancels the initial project loading, stops
- * selecting perspectives, collapsing the expanded objects and marking the
+ * selecting lenses, collapsing the expanded objects and marking the
  * project open, and stops the
  * plugin registry and the data caches, invoked on hot module replacement
  */
@@ -43,12 +43,12 @@ export function bootstrap(): () => void {
   enableBuiltInPlugins();
   const stopMarkingProjectOpen = startMarkingProjectOpen();
   const stopCollapsingOnProjectSwitch = startCollapsingOnProjectSwitch();
-  const stopSelectingPerspectives = startSelectingPerspectives();
+  const stopSelectingLens = startSelectingLens();
   const cancelInitialProjectLoading = loadInitialProject();
   notifyTissUUmapsLoaded();
   return () => {
     cancelInitialProjectLoading();
-    stopSelectingPerspectives();
+    stopSelectingLens();
     stopCollapsingOnProjectSwitch();
     stopMarkingProjectOpen();
     stopPluginRegistry();
@@ -97,57 +97,55 @@ function startCollapsingOnProjectSwitch(): () => void {
   });
 }
 
-/** The GET parameter naming the perspective to show, see `Plugin.perspective` */
-const perspectiveURLParam = "perspective";
+/** The GET parameter naming the lens to show, see `Plugin.lens` */
+const lensURLParam = "lens";
 
 /**
- * Selects the perspective of the open project whenever another project is
- * loaded or the project is closed, and whenever the registered perspectives
+ * Selects the lens of the open project whenever another project is
+ * loaded or the project is closed, and whenever the registered lenses
  * change
  *
- * The perspective named by the {@link perspectiveURLParam} GET parameter wins,
- * the generic user interface if no registered plugin has that perspective.
- * Otherwise, the perspective that applies to the importer of the project is
+ * The lens named by the {@link lensURLParam} GET parameter wins,
+ * the generic user interface if no registered plugin has that lens.
+ * Otherwise, the lens that applies to the importer of the project is
  * activated, if exactly one does, and the generic user interface if none or
- * several do. An activated perspective's plugin is mounted.
+ * several do. An activated lens's plugin is mounted.
  *
- * @returns A callback that stops selecting perspectives
+ * @returns A callback that stops selecting lenses
  */
-function startSelectingPerspectives(): () => void {
-  const perspectiveIds = () =>
+function startSelectingLens(): () => void {
+  const lensIds = () =>
     [...appStore.getState().plugins]
-      .filter(([, plugin]) => plugin.perspective !== undefined)
+      .filter(([, plugin]) => plugin.lens !== undefined)
       .map(([pluginId]) => pluginId)
       .join("\n");
   const select = () => {
-    const { plugins, setActivePerspectiveId } = appStore.getState();
+    const { plugins, setActiveLensId } = appStore.getState();
     const { importerId } = projectStore.getState();
     const requestedId = new URLSearchParams(window.location.search).get(
-      perspectiveURLParam,
+      lensURLParam,
     );
-    let perspectiveId: string | null = null;
+    let lensId: string | null = null;
     if (requestedId !== null) {
-      perspectiveId =
-        plugins.get(requestedId)?.perspective !== undefined
-          ? requestedId
-          : null;
+      lensId =
+        plugins.get(requestedId)?.lens !== undefined ? requestedId : null;
     } else if (importerId !== null) {
       const applying = [...plugins].filter(([, plugin]) =>
-        plugin.perspective?.appliesTo.includes(importerId),
+        plugin.lens?.appliesTo.includes(importerId),
       );
-      perspectiveId = applying.length === 1 ? applying[0]![0] : null;
+      lensId = applying.length === 1 ? applying[0]![0] : null;
     }
-    setActivePerspectiveId(perspectiveId);
-    if (perspectiveId !== null) {
-      pluginRegistry.mountPlugin(perspectiveId);
+    setActiveLensId(lensId);
+    if (lensId !== null) {
+      pluginRegistry.mountPlugin(lensId);
     }
   };
-  let lastPerspectiveIds = perspectiveIds();
+  let lastLensIds = lensIds();
   const unsubscribeApp = appStore.subscribe(() => {
     // mounting changes the plugins too, which must not undo the user's choice
-    const currentPerspectiveIds = perspectiveIds();
-    if (currentPerspectiveIds !== lastPerspectiveIds) {
-      lastPerspectiveIds = currentPerspectiveIds;
+    const currentLensIds = lensIds();
+    if (currentLensIds !== lastLensIds) {
+      lastLensIds = currentLensIds;
       select();
     }
   });

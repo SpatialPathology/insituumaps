@@ -11,7 +11,7 @@ import type { ProjectImporter, RawProject } from "@tissuumaps/core";
 import { URLSource } from "@/insitupy";
 import { useAppStore as insitupyStore } from "@/state/store";
 
-/** The ID of the InSituPy importer, which the plugin's perspective applies to */
+/** The ID of the InSituPy importer, which the plugin's lens applies to */
 export const insitupyImporterId = "insitupy";
 
 /**

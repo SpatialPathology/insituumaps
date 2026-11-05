@@ -54,7 +54,7 @@ const pluginRegistrations = new Map<
  * callback returned by `mount`. Unregistering a plugin removes it from the app
  * store, unmounts it if it is mounted, and then calls the teardown callback
  * returned by `setup`. Unmounting or unregistering the plugin of the active
- * perspective switches to the generic user interface. The registry is the only writer of the app store's
+ * lens switches to the generic user interface. The registry is the only writer of the app store's
  * `plugins`.
  *
  * The plugin object itself is not put into the app store: the app store only
@@ -90,10 +90,10 @@ export const pluginRegistry: PluginRegistry = {
         mountable: plugin.mount !== undefined,
         // copied, so that Immer does not freeze the plugin's own arrays
         ...(plugin.mount !== undefined &&
-          plugin.perspective !== undefined && {
-            perspective: {
-              appliesTo: [...plugin.perspective.appliesTo],
-              hiddenPanels: [...plugin.perspective.hiddenPanels],
+          plugin.lens !== undefined && {
+            lens: {
+              appliesTo: [...plugin.lens.appliesTo],
+              hiddenPanels: [...plugin.lens.hiddenPanels],
             },
           }),
       });
@@ -137,9 +137,9 @@ export const pluginRegistry: PluginRegistry = {
       if (draftPlugin !== undefined) {
         delete draftPlugin.container;
       }
-      // a perspective without its panel would only hide the built-in panels
-      if (draft.activePerspectiveId === pluginId) {
-        draft.activePerspectiveId = null;
+      // a lens without its panel would only hide the built-in panels
+      if (draft.activeLensId === pluginId) {
+        draft.activeLensId = null;
       }
     });
     try {
@@ -158,8 +158,8 @@ export const pluginRegistry: PluginRegistry = {
       pluginRegistrations.delete(pluginId);
       appStore.setState((draft) => {
         draft.plugins.delete(pluginId);
-        if (draft.activePerspectiveId === pluginId) {
-          draft.activePerspectiveId = null;
+        if (draft.activeLensId === pluginId) {
+          draft.activeLensId = null;
         }
       });
       try {
